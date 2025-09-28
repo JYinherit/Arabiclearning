@@ -609,8 +609,9 @@
             let details = {};
             
             for (let key in localStorage) {
-                const value = localStorage[key];
-                const size = key.length + value.length;
+         const value = localStorage.getItem(key); 
+
+         const size = key.length + (value ? value.length : 0);
                 totalSize += size;
                 
                 // 识别是哪种数据
