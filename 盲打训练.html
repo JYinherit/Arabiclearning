@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>阿拉伯语（埃及）键位学习与盲打训练（兼容版）</title>
+<style>
+  :root{
+    --bg:#0f172a;--text:#e5e7eb;--sub:#9ca3af;--accent:#06b6d4;--accent2:#22c55e;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(135deg,#0b1220,#0f172a 35%,#08101f 75%);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif}
+  header{padding:16px 20px;border-bottom:1px solid #1f2937;background:rgba(0,0,0,.2);position:sticky;top:0}
+  header h1{margin:0 0 6px 0;font-size:20px;font-weight:700}
+  header p{margin:0;color:var(--sub);font-size:13px}
+  .container{display:grid;grid-template-columns:320px 1fr;gap:16px;padding:16px}
+  @media (max-width:1000px){.container{grid-template-columns:1fr}}
+  .card{background:rgba(255,255,255,.03);border:1px solid #1f2937;border-radius:12px;padding:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .chip{padding:6px 10px;border-radius:999px;background:#0b1220;border:1px solid #1f2937;color:var(--text);font-size:12px;cursor:pointer;user-select:none}
+  .chip.active{border-color:var(--accent);box-shadow:0 0 0 1px inset var(--accent);color:#baf8ff}
+  .btn{padding:8px 12px;border-radius:10px;border:1px solid #1f2937;background:#0b1220;color:var(--text);cursor:pointer;font-weight:600;font-size:14px}
+  .btn.primary{background:linear-gradient(180deg,#0891b2,#0284c7);border-color:#0ea5e9}
+  .btn.danger{background:linear-gradient(180deg,#ef4444,#b91c1c);border-color:#ef4444}
+  .kbd{padding:2px 6px;border-radius:6px;border:1px solid #334155;background:#0b1220;color:#cbd5e1;font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .stat{min-width:100px;flex:1;padding:10px;border-radius:10px;background:#0b1220;border:1px solid #1f2937}
+  .stat h3{margin:0;color:#cbd5e1;font-size:12px;font-weight:600}
+  .stat p{margin:6px 0 0 0;font-weight:800;font-size:18px}
+  .split{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+  @media (max-width:1200px){.split{grid-template-columns:1fr}}
+  .target-box{display:flex;align-items:center;justify-content:center;height:180px;border-radius:12px;border:1px dashed #334155;background:rgba(255,255,255,.02)}
+  .target-char{font-size:96px;font-weight:900;direction:rtl}
+  .rtl{direction:rtl}
+  .keyboard{padding:12px;border-radius:12px;background:#0b1220;border:1px solid #1f2937}
+  .kb-row{display:flex;gap:8px;margin-bottom:8px}
+  .key{min-width:42px;height:48px;border-radius:10px;background:#1f2937;border:1px solid #283347;padding:6px;display:flex;flex-direction:column;justify-content:space-between}
+  .key.small{min-width:36px}
+  .key.space{flex:1;min-width:auto}
+  .latin{font-size:11px;color:#94a3b8}
+  .arabic{font-size:16px;font-weight:700;direction:rtl;align-self:flex-end}
+  .shift{color:#bae6fd}
+  .key.target{box-shadow:0 0 0 2px var(--accent) inset}
+  .key.good{box-shadow:0 0 0 2px var(--accent2) inset}
+  .key.bad{box-shadow:0 0 0 2px var(--danger) inset}
+  .log{position:fixed;right:10px;bottom:10px;width:360px;height:140px;background:#0b1220;border:1px solid #334155;border-radius:8px}
+  .log h4{margin:6px 8px;color:#a3a3a3;font-size:12px}
+  .log textarea{width:100%;height:100px;background:transparent;color:#a3e635;border:0;outline:0;resize:none;padding:8px;font-family:ui-monospace,Consolas,monospace;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>阿拉伯语（埃及）键位学习与盲打训练（兼容版）</h1>
+  <p>如仍无法交互，请查看右下角“调试日志”并把第一条报错发给我。</p>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h2>设置</h2>
+    <div class="row">
+      <span class="chip active" id="mode-ime">使用系统阿拉伯语输入法</span>
+      <span class="chip" id="mode-phy">模拟阿拉伯语(101)</span>
+    </div>
+
+    <div class="row">
+      <span class="chip active" data-group="letters">字母</span>
+      <span class="chip" data-group="hamza">“لا”/哈姆扎</span>
+      <span class="chip" data-group="tashkeel">哈拉卡</span>
+      <span class="chip" data-group="punct">标点</span>
+      <span class="chip" data-group="digits">数字</span>
+    </div>
+
+    <div class="row">
+      <span class="chip active" id="show-hint">高亮目标键</span>
+      <span class="chip" id="no-hint">无提示</span>
+      <span class="chip" id="strict-shift">严格区分Shift</span>
+    </div>
+
+    <div class="row">
+      <button class="btn primary" id="start">开始训练</button>
+      <button class="btn danger" id="stop" disabled>停止</button>
+      <button class="btn" id="next">下一个</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><h3>准确率</h3><p id="acc">—</p></div>
+      <div class="stat"><h3>平均反应时</h3><p id="rt">—</p></div>
+      <div class="stat"><h3>CPM / WPM</h3><p id="pace">—</p></div>
+      <div class="stat"><h3>连续正确</h3><p id="streak">0</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="split">
+      <div>
+        <h2>目标字符</h2>
+        <div class="target-box"><div class="target-char" id="target">—</div></div>
+      </div>
+      <div>
+        <h2>即刻练习（RTL）</h2>
+        <textarea id="practice" class="card rtl" style="height:180px;width:100%;background:#0b1220;border:1px solid #1f2937;border-radius:10px;color:#e5e7eb;padding:10px;resize:vertical" placeholder="切换到阿拉伯语（埃及）输入法试着输入……"></textarea>
+        <div class="row" style="margin-top:6px">
+          <span class="kbd">方向 RTL</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card keyboard" style="margin-top:12px">
+      <h2>阿拉伯语（埃及）键盘示意</h2>
+      <div id="kb"></div>
+    </div>
+  </div>
+</div>
+
+<div class="log">
+  <h4>调试日志</h4>
+  <textarea id="logbox" readonly></textarea>
+</div>
+
+<script>
+(function(){
+  // 日志/兜底
+  var logbox = null;
+  function log(msg){ try{ if(!logbox) logbox=document.getElementById('logbox'); logbox.value += msg + "\\n"; logbox.scrollTop = logbox.scrollHeight; }catch(e){} }
+  function now(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
+
+  try{
+    // 1) 数据
+    var KEY_ROWS = [
+      ["Backquote","Digit1","Digit2","Digit3","Digit4","Digit5","Digit6","Digit7","Digit8","Digit9","Digit0","Minus","Equal","Backspace"],
+      ["Tab","KeyQ","KeyW","KeyE","KeyR","KeyT","KeyY","KeyU","KeyI","KeyO","KeyP","BracketLeft","BracketRight","Backslash"],
+      ["CapsLock","KeyA","KeyS","KeyD","KeyF","KeyG","KeyH","KeyJ","KeyK","KeyL","Semicolon","Quote","Enter"],
+      ["ShiftLeft","KeyZ","KeyX","KeyC","KeyV","KeyB","KeyN","KeyM","Comma","Period","Slash","ShiftRight"],
+      ["ControlLeft","MetaLeft","AltLeft","Space","AltRight","MetaRight","ContextMenu","ControlRight"]
+    ];
+    var LAT = {
+      Backquote:"`",Digit1:"1",Digit2:"2",Digit3:"3",Digit4:"4",Digit5:"5",Digit6:"6",Digit7:"7",Digit8:"8",Digit9:"9",Digit0:"0",Minus:"-",Equal:"=",Backspace:"Bksp",
+      Tab:"Tab",KeyQ:"Q",KeyW:"W",KeyE:"E",KeyR:"R",KeyT:"T",KeyY:"Y",KeyU:"U",KeyI:"I",KeyO:"O",KeyP:"P",BracketLeft:"[",BracketRight:"]",Backslash:"\\",
+      CapsLock:"Caps",KeyA:"A",KeyS:"S",KeyD:"D",KeyF:"F",KeyG:"G",KeyH:"H",KeyJ:"J",KeyK:"K",KeyL:"L",Semicolon:";",Quote:"'",Enter:"Enter",
+      ShiftLeft:"Shift",KeyZ:"Z",KeyX:"X",KeyC:"C",KeyV:"V",KeyB:"B",KeyN:"N",KeyM:"M",Comma:",",Period:".",Slash:"/",ShiftRight:"Shift",
+      ControlLeft:"Ctrl",MetaLeft:"Win",AltLeft:"Alt",Space:"Space",AltRight:"Alt",MetaRight:"Win",ContextMenu:"Menu",ControlRight:"Ctrl"
+    };
+    var DEFAULT_MAP = {
+      base:{
+        Backquote:"ذ",
+        Digit1:"1",Digit2:"2",Digit3:"3",Digit4:"4",Digit5:"5",Digit6:"6",Digit7:"7",Digit8:"8",Digit9:"9",Digit0:"0",
+        Minus:"-",Equal:"=",
+        KeyQ:"ض",KeyW:"ص",KeyE:"ث",KeyR:"ق",KeyT:"ف",KeyY:"غ",KeyU:"ع",KeyI:"ه",KeyO:"خ",KeyP:"ح",
+        BracketLeft:"ج",BracketRight:"د",
+        KeyA:"ش",KeyS:"س",KeyD:"ي",KeyF:"ب",KeyG:"ل",KeyH:"ا",KeyJ:"ت",KeyK:"ن",KeyL:"م",Semicolon:"ك",Quote:"ط",
+        KeyZ:"ئ",KeyX:"ء",KeyC:"ؤ",KeyV:"ر",KeyB:"لا",KeyN:"ى",KeyM:"ة",Comma:"و",Period:"ز",Slash:"ظ",
+        Space:" "
+      },
+      shift:{
+        Backquote:"ّ",
+        Digit1:"!",Digit2:"@",Digit3:"#",Digit4:"$",Digit5:"%",Digit6:"^",Digit7:"&",Digit8:"*",Digit9:"(",Digit0:")",
+        Minus:"ـ",Equal:"+",
+        KeyQ:"َ",KeyW:"ً",KeyE:"ُ",KeyR:"ٌ",
+        KeyA:"ِ",KeyS:"ٍ",KeyX:"ْ",
+        Semicolon:"؛",Comma:"،",Slash:"؟",Period:".",
+        Space:" "
+      }
+    };
+    var SETS = {
+      letters:["ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","د","ش","س","ي","ب","ل","ا","ت","ن","م","ك","ط","ئ","ء","ؤ","ر","لا","ى","ة","و","ز","ظ","ذ"],
+      hamza:["أ","إ","ؤ","ئ","ء","لا","آ"],
+      tashkeel:["َ","ً","ُ","ٌ","ِ","ٍ","ْ","ّ"],
+      punct:["،","；".replace("；","؛"),"；".replace("；","؛"),"？".replace("？","؟"),"ـ","؛"],
+      digits:["0","1","2","3","4","5","6","7","8","9"]
+    };
+
+    // 2) 状态
+    var mapping = JSON.parse(JSON.stringify(DEFAULT_MAP));
+    var useIME = true, showHints = true, strictShift = false, training = false, showShiftLayer=false;
+    var targetChar = null, startTime = 0;
+    var stats = {hit:0, miss:0, totalRT:0, typed:0, startAt:0, streak:0, bestStreak:0};
+
+    // 3) DOM
+    var kb = document.getElementById('kb');
+    var targetEl = document.getElementById('target');
+    var accEl = document.getElementById('acc');
+    var rtEl = document.getElementById('rt');
+    var paceEl = document.getElementById('pace');
+    var streakEl = document.getElementById('streak');
+
+    // 4) 小工具
+    function hasClass(el,c){ return (" "+el.className+" ").indexOf(" "+c+" ")>-1; }
+    function addClass(el,c){ if(!hasClass(el,c)) el.className += (el.className?" ":"")+c; }
+    function removeClass(el,c){ el.className = el.className.replace(new RegExp("(^|\\s)"+c+"(\\s|$)","g")," ").replace(/\s+/g," ").replace(/^\s|\s$/g,""); }
+    function toggleClass(el,c,state){ if(typeof state==="boolean"){ state?addClass(el,c):removeClass(el,c); } else { hasClass(el,c)?removeClass(el,c):addClass(el,c); } }
+
+    // 5) 渲染键盘
+    function renderKeyboard(){
+      kb.innerHTML = "";
+      for(var r=0;r<KEY_ROWS.length;r++){
+        var rowDiv = document.createElement('div'); rowDiv.className="kb-row";
+        var row = KEY_ROWS[r];
+        for(var i=0;i<row.length;i++){
+          var code = row[i];
+          var keyDiv = document.createElement('div');
+          keyDiv.className = "key"+((code==="Space")?" space":"")+((/Backspace|Tab|CapsLock|Enter|ShiftLeft|ShiftRight|ControlLeft|ControlRight|AltLeft|AltRight|MetaLeft|MetaRight|ContextMenu/.test(code))?" small":"");
+          keyDiv.setAttribute("data-code", code);
+          var baseCh = mapping.base[code]||"";
+          var shCh = mapping.shift[code]||"";
+          keyDiv.innerHTML =
+            '<div class="latin">'+(LAT[code]||code)+'</div>'+
+            '<div class="arabic">'+baseCh+'</div>'+
+            '<div class="arabic shift" style="opacity:'+(showShiftLayer?1:.4)+'">'+shCh+'</div>';
+          rowDiv.appendChild(keyDiv);
+        }
+        kb.appendChild(rowDiv);
+      }
+      log("键盘已渲染");
+    }
+
+    function buildReverseMap(){
+      var rev = {};
+      function put(ch,code,isShift){
+        if(!ch) return;
+        if(!rev[ch]) rev[ch]=[];
+        rev[ch].push({code:code,shift:!!isShift});
+      }
+      for(var c in mapping.base){ put(mapping.base[c], c, false); }
+      for(var c2 in mapping.shift){ put(mapping.shift[c2], c2, true); }
+      return rev;
+    }
+
+    function getActivePool(){
+      var chips = document.querySelectorAll('[data-group]');
+      var i, pool = {}, any=false;
+      for(i=0;i<chips.length;i++){
+        if(hasClass(chips[i],"active")){
+          any=true;
+          var name = chips[i].getAttribute('data-group');
+          var arr = SETS[name]||[];
+          for(var j=0;j<arr.length;j++){ pool[arr[j]] = true; }
+        }
+      }
+      var list=[], k;
+      for(k in pool){ if(pool.hasOwnProperty(k)) list.push(k); }
+      if(!useIME){
+        var rev = buildReverseMap(), list2=[];
+        for(i=0;i<list.length;i++){ if(rev[list[i]]) list2.push(list[i]); }
+        return list2;
+      }
+      return list;
+    }
+
+    function pickTarget(){
+      var cands = getActivePool();
+      if(!cands.length){ alert("训练集为空：请至少勾选一种训练内容。"); return null; }
+      var idx = Math.floor(Math.random()*cands.length);
+      return cands[idx];
+    }
+
+    function highlightTarget(ch){
+      var keys = kb.querySelectorAll('.key'); for(var i=0;i<keys.length;i++){ removeClass(keys[i],'target'); removeClass(keys[i],'good'); removeClass(keys[i],'bad'); }
+      if(!showHints) return;
+      var rev = buildReverseMap();
+      var arr = rev[ch]||[];
+      for(var j=0;j<arr.length;j++){
+        var el = kb.querySelector('[data-code="'+arr[j].code+'"]');
+        if(el) addClass(el,'target');
+      }
+    }
+
+    function startTraining(){
+      if(training) return;
+      stats = {hit:0,miss:0,totalRT:0,typed:0,startAt:now(),streak:0,bestStreak:0};
+      renderStats();
+      training = true;
+      document.getElementById('start').disabled = true;
+      document.getElementById('stop').disabled = false;
+      nextRound();
+      log("开始训练");
+    }
+    function stopTraining(){
+      training = false;
+      document.getElementById('start').disabled = false;
+      document.getElementById('stop').disabled = true;
+      targetEl.innerHTML = "—";
+      var keys = kb.querySelectorAll('.key'); for(var i=0;i<keys.length;i++){ removeClass(keys[i],'target'); removeClass(keys[i],'good'); removeClass(keys[i],'bad'); }
+      log("停止训练");
+    }
+    function nextRound(){
+      targetChar = pickTarget();
+      if(!targetChar){ stopTraining(); return; }
+      targetEl.innerHTML = targetChar;
+      highlightTarget(targetChar);
+      startTime = now();
+    }
+
+    function renderStats(){
+      var acc = stats.typed ? (stats.hit/stats.typed*100) : 0;
+      accEl.innerHTML = stats.typed ? acc.toFixed(1)+"%" : "—";
+      var art = stats.hit ? (stats.totalRT / stats.hit) : 0;
+      rtEl.innerHTML = stats.hit ? Math.round(art)+" ms" : "—";
+      var elapsedMin = (now()-stats.startAt)/60000;
+      var cpm = elapsedMin>0 ? Math.round(stats.hit/elapsedMin) : 0;
+      var wpm = Math.round(cpm/5);
+      paceEl.innerHTML = (cpm||0)+" / "+(wpm||0);
+      streakEl.innerHTML = String(stats.streak);
+    }
+
+    function flashKey(code, ok){
+      var el = kb.querySelector('[data-code="'+code+'"]');
+      if(!el) return;
+      addClass(el, ok?'good':'bad');
+      setTimeout(function(){ removeClass(el,'good'); removeClass(el,'bad'); }, 180);
+    }
+
+    // 6) 事件绑定（尽量用最基础 API）
+    function on(el, evt, handler){ el.addEventListener ? el.addEventListener(evt, handler, false) : el.attachEvent("on"+evt, handler); }
+
+    renderKeyboard();
+
+    on(document.getElementById('mode-ime'),'click',function(){
+      useIME = true; addClass(this,'active'); removeClass(document.getElementById('mode-phy'),'active');
+      log("切换到：使用系统输入法");
+    });
+    on(document.getElementById('mode-phy'),'click',function(){
+      useIME = false; addClass(this,'active'); removeClass(document.getElementById('mode-ime'),'active');
+      log("切换到：模拟 101 布局");
+    });
+
+    var groupChips = document.querySelectorAll('[data-group]');
+    for(var i=0;i<groupChips.length;i++){
+      (function(el){
+        on(el,'click',function(){ toggleClass(el,'active'); });
+      })(groupChips[i]);
+    }
+
+    on(document.getElementById('show-hint'),'click',function(){ showHints=true; addClass(this,'active'); removeClass(document.getElementById('no-hint'),'active'); });
+    on(document.getElementById('no-hint'),'click',function(){ showHints=false; addClass(this,'active'); removeClass(document.getElementById('show-hint'),'active'); });
+    on(document.getElementById('strict-shift'),'click',function(){ strictShift=!strictShift; toggleClass(this,'active',strictShift); });
+
+    on(document.getElementById('start'),'click',startTraining);
+    on(document.getElementById('stop'),'click',stopTraining);
+    on(document.getElementById('next'),'click',function(){ if(!training) startTraining(); else nextRound(); });
+
+    // 键盘输入
+    on(window,'keydown',function(e){
+      e = e || window.event;
+      if(!training) return;
+      var code = e.code || e.key || ""; // 旧浏览器可能没有 code
+      // IME 模式：直接用 e.key（部分浏览器可能是 "Unidentified"）
+      if(useIME){
+        var ch = e.key || "";
+        if(ch && (ch.length===1 || ch.length===2)){
+          var ok = (ch === targetChar);
+          if(ok && strictShift===true){
+            // IME 下不强制层判断
+          }
+          var rt = now()-startTime;
+          stats.typed++;
+          if(ok){ stats.hit++; stats.totalRT+=rt; stats.streak++; if(stats.streak>stats.bestStreak) stats.bestStreak=stats.streak; }
+          else { stats.miss++; stats.streak=0; }
+          renderStats();
+          flashKey(code, ok);
+          nextRound();
+          if(e.preventDefault) e.preventDefault();
+          return false;
+        }
+      }else{
+        // 模拟 101：用物理层
+        var isShift = !!(e.shiftKey);
+        var char = (isShift ? (mapping.shift[e.code]||"") : (mapping.base[e.code]||""));
+        if(char){
+          var ok2 = (char === targetChar);
+          if(ok2 && strictShift){
+            // 严格层：检查目标字符确实来自此层
+            var rev = buildReverseMap();
+            var arr = rev[targetChar]||[];
+            var match=false, k;
+            for(k=0;k<arr.length;k++){ if(arr[k].code===e.code && !!arr[k].shift===isShift) {match=true;break;} }
+            if(!match) ok2=false;
+          }
+          var rt2 = now()-startTime;
+          stats.typed++;
+          if(ok2){ stats.hit++; stats.totalRT+=rt2; stats.streak++; if(stats.streak>stats.bestStreak) stats.bestStreak=stats.streak; }
+          else { stats.miss++; stats.streak=0; }
+          renderStats();
+          flashKey(e.code, ok2);
+          nextRound();
+          if(e.preventDefault) e.preventDefault();
+          return false;
+        }
+      }
+    });
+
+    // 启动日志
+    log("页面初始化完成 ✅");
+  }catch(err){
+    log("致命错误: "+(err && err.message ? err.message : err));
+    log((err && err.stack) ? err.stack : "");
+    alert("脚本运行失败：已在右下角日志中记录错误信息。请把第一条报错发给我。");
+  }
+})();
+</script>
+</body>
+</html>
