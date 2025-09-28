@@ -1,0 +1,23 @@
+{
+  "name": "arabiclearning",
+  "version": "1.0.0",
+  "description": "个人使用的阿拉伯语背诵辅助，日后拓展到各个小语种并拓展功能，希望可以帮助更多人学习",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OctagonalStar/Arabiclearning.git"
+  },
+  "author": "JYinherit & OctagonalStar",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OctagonalStar/Arabiclearning/issues"
+  },
+  "homepage": "https://github.com/OctagonalStar/Arabiclearning#readme",
+  "devDependencies": {
+    "electron": "^38.2.0"
+  }
+}
