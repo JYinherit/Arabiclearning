@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>钧鸢的阿拉伯语记忆γ</title>
+    <title>钧鸢的阿拉伯语记忆</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -373,6 +373,34 @@
             <p>所有单词都已牢牢记住！</p>
             <button id="finish-back-to-menu-btn" class="btn" style="background-color: #00695c;">返回菜单</button>
         </div>
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
+            <h3 style="color: #37474f; margin-bottom: 1rem;">数据管理</h3>
+            
+            <!-- 第一行按钮 -->
+            <button id="view-stats-btn" class="btn" style="background-color: #673ab7; width: 80%; margin: 0.6rem auto;">
+                📊 查看学习统计
+            </button>
+            
+            <!-- 第二行按钮 -->
+            <button id="export-backup-btn" class="btn" style="background-color: #00897b; width: 80%; margin: 0.6rem auto;">
+                💾 导出备份文件
+            </button>
+            
+            <!-- 第三行按钮 -->
+            <button id="import-backup-btn" class="btn" style="background-color: #1976d2; width: 80%; margin: 0.6rem auto;">
+                📂 导入备份文件
+            </button>
+            
+            <!-- 第四行按钮 -->
+            <button id="check-storage-btn" class="btn" style="background-color: #ff6f00; width: 80%; margin: 0.6rem auto;">
+                💿 查看存储空间
+            </button>
+            
+            <!-- 第五行按钮（危险操作） -->
+            <button id="clear-data-btn" class="btn" style="background-color: #f44336; width: 80%; margin: 0.6rem auto;">
+                🗑️ 清除所有数据
+            </button>
+        </div>
     </div>
 
     <script>
@@ -380,7 +408,240 @@
         const vocabularyDecks = {
 
         };
+        // ============= 本地存储功能 =============
+        const STORAGE_KEYS = {
+            DECKS: 'arabic_vocabulary_decks',
+            PROGRESS: 'arabic_learning_progress',
+            SETTINGS: 'arabic_app_settings',
+            STATS: 'arabic_learning_stats'
+        };
 
+        // 初始化统计数据
+        let learningStats = {
+            totalWordsLearned: 0,
+            totalSessions: 0,
+            lastStudyDate: null,
+            streakDays: 0,
+            dailyGoal: 20,
+            todayWords: 0
+        };
+
+        // 加载本地存储的词库
+        function loadDecksFromStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEYS.DECKS);
+                if (stored) {
+                    const decks = JSON.parse(stored);
+                    Object.assign(vocabularyDecks, decks);
+                    console.log(`已加载 ${Object.keys(decks).length} 个词库`);
+                }
+            } catch (e) {
+                console.error('加载词库失败:', e);
+            }
+        }
+
+        // 保存词库到本地存储
+        function saveDecksToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEYS.DECKS, JSON.stringify(vocabularyDecks));
+                showImportMessage('词库已自动保存到本地', true);
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') {
+                    showImportMessage('存储空间不足，请清理部分词库', false);
+                } else {
+                    console.error('保存失败:', e);
+                }
+            }
+        }
+
+        // 保存学习进度
+        function saveProgress() {
+            const progress = {
+                currentDeck: currentDeckName,
+                wordStates: activeWords.map(w => ({
+                    chinese: w.chinese,
+                    arabic: w.arabic,
+                    rememberedCount: w.rememberedCount,
+                    cooldown: w.cooldown,
+                    mistakeCount: w.mistakeCount || 0
+                })),
+                lastUpdate: new Date().toISOString()
+            };
+            localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(progress));
+        }
+
+        // 加载学习进度
+        function loadProgress(deckName) {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEYS.PROGRESS);
+                if (stored) {
+                    const progress = JSON.parse(stored);
+                    if (progress.currentDeck === deckName) {
+                        // 恢复进度
+                        const confirmRestore = confirm('检测到上次的学习进度，是否继续？');
+                        if (confirmRestore) {
+                            return progress.wordStates;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('加载进度失败:', e);
+            }
+            return null;
+        }
+
+        // 更新统计数据
+        function updateStats(remembered) {
+            const today = new Date().toDateString();
+            const lastDate = learningStats.lastStudyDate;
+            
+            if (lastDate !== today) {
+                learningStats.todayWords = 0;
+                learningStats.lastStudyDate = today;
+                
+                // 计算连续天数
+                if (lastDate) {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    if (lastDate === yesterday.toDateString()) {
+                        learningStats.streakDays++;
+                    } else {
+                        learningStats.streakDays = 1;
+                    }
+                } else {
+                    learningStats.streakDays = 1;
+                }
+            }
+            
+            if (remembered) {
+                learningStats.totalWordsLearned++;
+                learningStats.todayWords++;
+            }
+            
+            localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(learningStats));
+        }
+
+        // 清除所有数据
+        function clearAllData() {
+            if (confirm('确定要清除所有本地数据吗？（包括词库和学习进度）')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // 导出所有数据到文件
+        function exportAllDataToFile() {
+            const allData = {
+                decks: JSON.parse(localStorage.getItem(STORAGE_KEYS.DECKS) || '{}'),
+                progress: JSON.parse(localStorage.getItem(STORAGE_KEYS.PROGRESS) || '{}'),
+                stats: JSON.parse(localStorage.getItem(STORAGE_KEYS.STATS) || '{}'),
+                settings: JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || '{}'),
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const blob = new Blob([JSON.stringify(allData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `阿语学习备份_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showImportMessage('✅ 数据已导出到下载文件夹！', true);
+        }
+
+        // 导入备份文件
+        function importBackupFile() {
+            // 创建一个隐藏的文件输入
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const backup = JSON.parse(event.target.result);
+                        
+                        // 验证备份文件格式
+                        if (!backup.exportDate) {
+                            throw new Error('不是有效的备份文件');
+                        }
+                        
+                        const confirmMsg = `此备份创建于 ${new Date(backup.exportDate).toLocaleString()}\n确定要恢复此备份吗？（将覆盖当前所有数据）`;
+                        
+                        if (!confirm(confirmMsg)) return;
+                        
+                        // 恢复数据
+                        if (backup.decks) {
+                            localStorage.setItem(STORAGE_KEYS.DECKS, JSON.stringify(backup.decks));
+                        }
+                        if (backup.progress) {
+                            localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(backup.progress));
+                        }
+                        if (backup.stats) {
+                            localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(backup.stats));
+                        }
+                        if (backup.settings) {
+                            localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(backup.settings));
+                        }
+                        
+                        showImportMessage('✅ 备份恢复成功！即将刷新页面...', true);
+                        setTimeout(() => location.reload(), 1500);
+                        
+                    } catch (err) {
+                        showImportMessage('❌ 备份文件格式错误：' + err.message, false);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+
+        // 查看存储空间使用情况
+        function checkStorageUsage() {
+            let totalSize = 0;
+            let details = {};
+            
+            for (let key in localStorage) {
+                const value = localStorage[key];
+                const size = key.length + value.length;
+                totalSize += size;
+                
+                // 识别是哪种数据
+                if (key.includes('decks')) {
+                    details['词库数据'] = (size / 1024).toFixed(2) + ' KB';
+                } else if (key.includes('progress')) {
+                    details['学习进度'] = (size / 1024).toFixed(2) + ' KB';
+                } else if (key.includes('stats')) {
+                    details['统计数据'] = (size / 1024).toFixed(2) + ' KB';
+                }
+            }
+            
+            const totalKB = (totalSize / 1024).toFixed(2);
+            const usagePercent = ((totalSize / (5 * 1024 * 1024)) * 100).toFixed(1);
+            
+            let message = `📊 存储空间使用情况：\n\n`;
+            message += `总使用量：${totalKB} KB (${usagePercent}%)\n`;
+            message += `剩余空间：约 ${(5120 - parseFloat(totalKB)).toFixed(2)} KB\n\n`;
+            message += `详细分类：\n`;
+            
+            for (let [type, size] of Object.entries(details)) {
+                message += `  • ${type}：${size}\n`;
+            }
+            
+            message += `\n预计还可导入约 ${Math.floor((5120 - parseFloat(totalKB)) / 50)} 个词库`;
+            
+            alert(message);
+        }
+
+        // 添加一个当前词库名称变量
+        let currentDeckName = '';
         // 获取DOM元素
         const startScreen = document.getElementById('start-screen');
         const cardContainer = document.getElementById('card-container');
@@ -626,6 +887,8 @@
                     
                     // 刷新词库选择界面
                     setupSelectionScreen();
+                    //保存到本地
+                    saveDecksToStorage(); 
                     
                     // 显示成功消息
                     if (importedDecks.length === 1) {
@@ -654,18 +917,62 @@
         // 文件选择事件
         fileInput.addEventListener('change', handleFileImport);
 
+        // 查看统计
+        const viewStatsBtn = document.getElementById('view-stats-btn');
+        if (viewStatsBtn) {
+            viewStatsBtn.addEventListener('click', () => {
+                const stats = JSON.parse(localStorage.getItem(STORAGE_KEYS.STATS) || '{}');
+                const totalDecks = Object.keys(vocabularyDecks).length;
+                const totalWords = Object.values(vocabularyDecks).reduce((sum, deck) => sum + deck.length, 0);
+                
+                alert(`📊 学习统计：
+                
+        📚 词库数量：${totalDecks}
+        📝 总词汇量：${totalWords}
+        ✅ 已掌握：${stats.totalWordsLearned || 0}
+        📅 连续学习：${stats.streakDays || 0} 天
+        🎯 今日学习：${stats.todayWords || 0} 词
+        🏆 总学习次数：${stats.totalSessions || 0}`);
+            });
+        }
+
+        // 导出备份
+        const exportBackupBtn = document.getElementById('export-backup-btn');
+        if (exportBackupBtn) {
+            exportBackupBtn.addEventListener('click', exportAllDataToFile);
+        }
+
+        // 导入备份
+        const importBackupBtn = document.getElementById('import-backup-btn');
+        if (importBackupBtn) {
+            importBackupBtn.addEventListener('click', importBackupFile);
+        }
+
+        // 查看存储空间
+        const checkStorageBtn = document.getElementById('check-storage-btn');
+        if (checkStorageBtn) {
+            checkStorageBtn.addEventListener('click', checkStorageUsage);
+        }
+
+        // 清除数据
+        const clearDataBtn = document.getElementById('clear-data-btn');
+        if (clearDataBtn) {
+            clearDataBtn.addEventListener('click', clearAllData);
+        }
+
 
         function setupSelectionScreen() {
-            deckSelectionContainer.innerHTML = ''; // Clear previous buttons
+            deckSelectionContainer.innerHTML = '';
             Object.keys(vocabularyDecks).forEach(deckName => {
                 const button = document.createElement('button');
-                button.textContent = deckName;
+                button.textContent = `${deckName} (${vocabularyDecks[deckName].length}词)`;  // 显示词数
                 button.className = 'btn deck-btn';
                 if (vocabularyDecks[deckName].length === 0) {
-                    button.disabled = true; // Disable empty decks
+                    button.disabled = true;
                     button.title = '此词库暂无内容';
                 }
-                button.addEventListener('click', () => startSession(vocabularyDecks[deckName]));
+                // 传递 deckName 参数
+                button.addEventListener('click', () => startSession(vocabularyDecks[deckName], deckName));
                 deckSelectionContainer.appendChild(button);
             });
         }
@@ -721,18 +1028,40 @@
             explanationDisplay.classList.add('spoiler');
         }
 
-       function startSession(vocabulary) {
-    // 新增：读取用户选择的模式
+function startSession(vocabulary, deckName) {  // 添加 deckName 参数
+    currentDeckName = deckName;  // 保存当前词库名
+    
     const selectedMode = document.querySelector('input[name="mode"]:checked');
     if (selectedMode) {
         currentMode = selectedMode.value;
     } else {
-        currentMode = 'zh-ar'; // 默认回退
+        currentMode = 'zh-ar';
     }
-
-    initialize(vocabulary);
+    
+    // 尝试加载之前的进度
+    const savedProgress = loadProgress(deckName);
+    if (savedProgress) {
+        activeWords = vocabulary.map(word => {
+            const saved = savedProgress.find(s => 
+                s.chinese === word.chinese && s.arabic === word.arabic
+            );
+            return saved || {
+                ...word,
+                rememberedCount: 0,
+                cooldown: 0,
+                mistakeCount: 0
+            };
+        });
+    } else {
+        initialize(vocabulary);
+    }
+    
     showScreen(cardContainer);
     showNextWord();
+    
+    // 更新统计
+    learningStats.totalSessions++;
+    updateStats(false);
 }
     // 重置答案为隐藏状态
     answerDisplay.classList.remove('revealed');
@@ -783,27 +1112,32 @@
         }
         
         // --- Event Listeners ---
-        
-answerDisplay.addEventListener('click', () => {
-    // 切换答案的显示
-    answerDisplay.classList.toggle('spoiler');
-    answerDisplay.classList.toggle('revealed');
+                
+        answerDisplay.addEventListener('click', () => {
+            // 切换答案的显示
+            answerDisplay.classList.toggle('spoiler');
+            answerDisplay.classList.toggle('revealed');
 
-    // 同时切换解释的显示
-    explanationDisplay.classList.toggle('spoiler');
-    explanationDisplay.classList.toggle('revealed');
-});
+            // 同时切换解释的显示
+            explanationDisplay.classList.toggle('spoiler');
+            explanationDisplay.classList.toggle('revealed');
+        });
 
         rememberedBtn.addEventListener('click', () => {
             if (!currentWord) return;
             currentWord.rememberedCount++;
             currentWord.cooldown = 11;
+            updateStats(true);  // 更新统计
+            saveProgress();     // 保存进度
             showNextWord();
         });
 
         forgotBtn.addEventListener('click', () => {
             if (!currentWord) return;
             currentWord.cooldown = Math.floor(Math.random() * 4) + 2;
+            currentWord.mistakeCount = (currentWord.mistakeCount || 0) + 1;  // 记录错误次数
+            updateStats(false);  // 更新统计
+            saveProgress();      // 保存进度
             showNextWord();
         });
 
@@ -824,6 +1158,13 @@ answerDisplay.addEventListener('click', () => {
 
         // --- Initial Load ---
         window.onload = () => {
+            loadDecksFromStorage();
+
+            const savedStats = localStorage.getItem(STORAGE_KEYS.STATS);
+            if (savedStats) {
+                learningStats = JSON.parse(savedStats);
+            }
+            
             setupSelectionScreen();
             showScreen(startScreen);
         };
