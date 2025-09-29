@@ -105,7 +105,15 @@
              margin-top: 1.5rem;
         }
         #controls .btn {
-            width: 120px;
+            width: 120px; /* Default width for remembered/forgot buttons */
+        }
+        #next-word-in-history-btn {
+            background-color: #00695c; /* Match deck selection button color */
+            width: 80%; /* Make it wider and centered */
+            margin: 0.5rem auto;
+        }
+        #next-word-in-history-btn:hover {
+            background-color: #004d40;
         }
         #remembered-btn { background-color: #43a047; }
         #remembered-btn:hover { background-color: #388e3c; transform: translateY(-2px); }
@@ -361,6 +369,7 @@
             <div id="controls">
                 <button id="remembered-btn" class="btn">记住了</button>
                 <button id="forgot-btn" class="btn">没记住</button>
+                <button id="next-word-in-history-btn" class="btn" style="display: none;">下一个词</button>
             </div>
             <div id="nav-controls">
                 <button id="prev-btn" class="btn">上一个词</button>
@@ -464,7 +473,10 @@
                     explanation: w.explanation,
                     rememberedCount: w.rememberedCount,
                     cooldown: w.cooldown,
-                    mistakeCount: w.mistakeCount || 0
+                    mistakeCount: w.mistakeCount || 0,
+                    stage: w.stage || 0,
+                    nextReviewDate: w.nextReviewDate || null,
+                    firstLearnedDate: w.firstLearnedDate || null
                 })),
                 lastUpdate: new Date().toISOString()
             };
@@ -491,16 +503,15 @@
             return null;
         }
 
-        // 更新统计数据
-        function updateStats(remembered) {
+        // 更新每日状态和连续天数
+        function updateDailyStatus() {
             const today = new Date().toDateString();
             const lastDate = learningStats.lastStudyDate;
-            
+
             if (lastDate !== today) {
-                learningStats.todayWords = 0;
+                learningStats.todayWords = 0; // 重置今日学习单词数
                 learningStats.lastStudyDate = today;
-                
-                // 计算连续天数
+
                 if (lastDate) {
                     const yesterday = new Date();
                     yesterday.setDate(yesterday.getDate() - 1);
@@ -513,13 +524,27 @@
                     learningStats.streakDays = 1;
                 }
             }
-            
-            if (remembered) {
-                learningStats.totalWordsLearned++;
-                learningStats.todayWords++;
+        }
+
+        // 记录一个单词今日首次学会
+        function trackWordLearnedToday(word) {
+            updateDailyStatus();
+            // 只有当单词今天第一次被标记为学会时（或在新的会话日期），才计数
+            if (!word.firstLearnedDate || word.firstLearnedDate !== sessionStartDate) {
+                 word.firstLearnedDate = sessionStartDate;
+                 learningStats.todayWords = (learningStats.todayWords || 0) + 1;
+                 localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(learningStats));
             }
-            
-            localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(learningStats));
+        }
+
+        // 记录一个单词被掌握
+        function trackWordMastered(word) {
+            // 确保只计数一次
+            if (word.stage !== 4) {
+                word.stage = 4; // 标记为已掌握
+                learningStats.totalWordsLearned = (learningStats.totalWordsLearned || 0) + 1;
+                localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(learningStats));
+            }
         }
 
         // 清除所有数据
@@ -659,6 +684,7 @@
         const prevBtn = document.getElementById('prev-btn');
         const backToMenuBtn = document.getElementById('back-to-menu-btn');
         const finishBackToMenuBtn = document.getElementById('finish-back-to-menu-btn');
+        const nextWordInHistoryBtn = document.getElementById('next-word-in-history-btn');
 
         const progressBar = document.getElementById('progress-bar');
 
@@ -666,6 +692,9 @@
         let currentWord = null;
         let historyStack = [];
         let currentMode = 'zh-ar'; // 用于存储当前选择的模式
+        let isReviewingHistory = false; // 是否正在查看历史记录
+        let sessionStartDate = null; // 本次学习会话的开始日期
+        let isSessionActive = false; // 标记当前学习会话是否已开始实际学习
         // 导入功能相关变量
         const fileInput = document.getElementById('file-input');
         const importBtn = document.getElementById('import-btn');
@@ -988,7 +1017,8 @@
         
         function updateProgressBar() {
             if (activeWords.length === 0) return;
-            const learnedCount = activeWords.filter(w => w.rememberedCount >= 3).length;
+            // 进度条反映已经初步学会（进入复习阶段）的单词比例
+            const learnedCount = activeWords.filter(w => (w.stage || 0) >= 1).length;
             const progress = Math.round((learnedCount / activeWords.length) * 100);
             progressBar.style.width = progress + '%';
             progressBar.textContent = progress + '%';
@@ -1032,6 +1062,7 @@
 
 function startSession(vocabulary, deckName) {  // 添加 deckName 参数
     currentDeckName = deckName;  // 保存当前词库名
+    sessionStartDate = new Date().toDateString(); // 记录会话开始日期
     
     const selectedMode = document.querySelector('input[name="mode"]:checked');
     if (selectedMode) {
@@ -1047,11 +1078,16 @@ function startSession(vocabulary, deckName) {  // 添加 deckName 参数
             const saved = savedProgress.find(s => 
                 s.chinese === word.chinese && s.arabic === word.arabic
             );
-            return saved || {
+            // 合并，确保新旧数据结构都能兼容
+            return {
                 ...word,
                 rememberedCount: 0,
                 cooldown: 0,
-                mistakeCount: 0
+                mistakeCount: 0,
+                stage: 0,
+                nextReviewDate: null,
+                firstLearnedDate: null,
+                ...saved // 用保存的数据覆盖默认值
             };
         });
     } else {
@@ -1061,9 +1097,7 @@ function startSession(vocabulary, deckName) {  // 添加 deckName 参数
     showScreen(cardContainer);
     showNextWord();
     
-    // 更新统计
-    learningStats.totalSessions++;
-    updateStats(false);
+    // 统计更新移至第一次点击“记住了”或“没记住”时
 }
     // 重置答案为隐藏状态
     answerDisplay.classList.remove('revealed');
@@ -1075,6 +1109,10 @@ function startSession(vocabulary, deckName) {  // 添加 deckName 参数
                 ...word,
                 rememberedCount: 0,
                 cooldown: 0,
+                mistakeCount: 0,
+                stage: 0, // 0: learning, 1: 3d, 2: 7d, 3: 30d, 4: mastered
+                nextReviewDate: null,
+                firstLearnedDate: null
             }));
             historyStack = [];
             currentWord = null;
@@ -1082,7 +1120,14 @@ function startSession(vocabulary, deckName) {  // 添加 deckName 参数
         }
 
         function showNextWord() {
-            // Push the current word to history before getting the next one
+            // 退出历史记录只读模式
+            isReviewingHistory = false;
+            rememberedBtn.style.display = 'inline-block'; // 显示
+            forgotBtn.style.display = 'inline-block'; // 显示
+            nextWordInHistoryBtn.style.display = 'none'; // 隐藏
+            rememberedBtn.disabled = false;
+            forgotBtn.disabled = false;
+
             if (currentWord) {
                 historyStack.push(currentWord);
             }
@@ -1092,21 +1137,63 @@ function startSession(vocabulary, deckName) {  // 添加 deckName 参数
                 if (w.cooldown > 0) w.cooldown--;
             });
 
-            let wordsToLearn = activeWords.filter(w => w.rememberedCount < 3);
+            const today = new Date();
+            
+            // 检查今天是否还有任务
+            const hasLearningWords = activeWords.some(w => (w.stage || 0) === 0);
+            const hasReviewWordsToday = activeWords.some(w => 
+                w.stage > 0 && 
+                w.nextReviewDate && 
+                new Date(w.nextReviewDate) <= today
+            );
 
-            if (wordsToLearn.length === 0) {
+            // 如果所有单词都已进入复习阶段，并且今天没有到期的复习词，则结束
+            if (!hasLearningWords && !hasReviewWordsToday) {
+                // 在显示完成前，再确认一下是否所有词都彻底掌握了
+                const allMastered = activeWords.every(w => (w.stage || 0) >= 4);
+                if (!allMastered) {
+                     // 如果只是今天没任务，可以给个不同的提示
+                    completionScreen.querySelector('h2').textContent = '🎉 恭喜！今日任务已全部完成 🎉';
+                    completionScreen.querySelector('p').textContent = '请明天再来复习吧！';
+                } else {
+                    completionScreen.querySelector('h2').textContent = '🎉 恭喜你完成了本词库的记忆 🎉';
+                    completionScreen.querySelector('p').textContent = '所有单词都已牢牢记住！';
+                }
                 showScreen(completionScreen);
                 return;
             }
 
-            let availablePool = wordsToLearn.filter(w => w.cooldown === 0);
-            
-            if (availablePool.length === 0) {
-                wordsToLearn.sort((a, b) => a.cooldown - b.cooldown);
-                currentWord = wordsToLearn[0];
+            // 筛选出所有未掌握的词
+            let wordsToLearn = activeWords.filter(w => (w.stage || 0) < 4);
+
+            // 1. 优先选择到期的复习词 (移除cooldown限制)
+            let reviewPool = wordsToLearn.filter(w => 
+                w.stage > 0 && 
+                w.nextReviewDate && 
+                new Date(w.nextReviewDate) <= today
+            );
+
+            if (reviewPool.length > 0) {
+                const randomIndex = Math.floor(Math.random() * reviewPool.length);
+                currentWord = reviewPool[randomIndex];
+                displayCard(currentWord);
+                updateProgressBar();
+                return;
+            }
+
+            // 2. 如果没有复习词，选择学习阶段的词
+            let learningPool = wordsToLearn.filter(w => (w.stage || 0) === 0 && w.cooldown === 0);
+
+            if (learningPool.length > 0) {
+                const randomIndex = Math.floor(Math.random() * learningPool.length);
+                currentWord = learningPool[randomIndex];
             } else {
-                const randomIndex = Math.floor(Math.random() * availablePool.length);
-                currentWord = availablePool[randomIndex];
+                // 3. 如果都没有（意味着今天的任务完成了，但上面那个判断没拦住，或者有词在冷却中）
+                // 此时不应该卡住，而是显示完成界面
+                completionScreen.querySelector('h2').textContent = '🎉 恭喜！今日任务已全部完成 🎉';
+                completionScreen.querySelector('p').textContent = '请明天再来复习吧！';
+                showScreen(completionScreen);
+                return;
             }
             
             displayCard(currentWord);
@@ -1126,20 +1213,71 @@ function startSession(vocabulary, deckName) {  // 添加 deckName 参数
         });
 
         rememberedBtn.addEventListener('click', () => {
-            if (!currentWord) return;
-            currentWord.rememberedCount++;
+            if (!currentWord || isReviewingHistory) return;
+
+            const today = new Date();
+
+            if (!isSessionActive) {
+                learningStats.totalSessions = (learningStats.totalSessions || 0) + 1; // 首次学习才增加总会话数
+                updateDailyStatus(); // 更新每日状态（今日学习、连续天数）
+                localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(learningStats)); // 保存统计数据
+                isSessionActive = true; // 标记会话已激活
+            }
+            
+            // 检查是否是到期的复习词
+            if (currentWord.stage > 0 && currentWord.nextReviewDate && new Date(currentWord.nextReviewDate) <= today) {
+                currentWord.stage++; // 进入下一阶段
+                
+                let nextReviewDays = null;
+                if (currentWord.stage === 2) nextReviewDays = 7;
+                if (currentWord.stage === 3) nextReviewDays = 30;
+
+                if (nextReviewDays) {
+                    const nextDate = new Date();
+                    nextDate.setDate(today.getDate() + nextReviewDays);
+                    currentWord.nextReviewDate = nextDate.toISOString();
+                } else if (currentWord.stage >= 4) {
+                    // 已掌握
+                    trackWordMastered(currentWord);
+                    currentWord.nextReviewDate = null;
+                }
+            } else if ((currentWord.stage || 0) === 0) {
+                // 学习阶段
+                currentWord.rememberedCount++;
+                if (currentWord.rememberedCount === 3) {
+                    currentWord.stage = 1; // 进入3天复习阶段
+                    const nextDate = new Date();
+                    nextDate.setDate(today.getDate() + 3);
+                    currentWord.nextReviewDate = nextDate.toISOString();
+                    trackWordLearnedToday(currentWord); // 统计今日学习
+                }
+            }
+
             currentWord.cooldown = 11;
-            updateStats(true);  // 更新统计
-            saveProgress();     // 保存进度
+            saveProgress();
             showNextWord();
         });
 
         forgotBtn.addEventListener('click', () => {
-            if (!currentWord) return;
+            if (!currentWord || isReviewingHistory) return;
+
+            if (!isSessionActive) {
+                learningStats.totalSessions = (learningStats.totalSessions || 0) + 1; // 首次学习才增加总会话数
+                updateDailyStatus(); // 更新每日状态（今日学习、连续天数）
+                localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(learningStats)); // 保存统计数据
+                isSessionActive = true; // 标记会话已激活
+            }
+            
+            // 如果是复习阶段的词忘了，则重置学习阶段
+            if (currentWord.stage > 0) {
+                currentWord.stage = 0;
+                currentWord.rememberedCount = 0; // 重置记忆次数
+                currentWord.nextReviewDate = null;
+            }
+
             currentWord.cooldown = Math.floor(Math.random() * 4) + 2;
-            currentWord.mistakeCount = (currentWord.mistakeCount || 0) + 1;  // 记录错误次数
-            updateStats(false);  // 更新统计
-            saveProgress();      // 保存进度
+            currentWord.mistakeCount = (currentWord.mistakeCount || 0) + 1;
+            saveProgress();
             showNextWord();
         });
 
@@ -1148,15 +1286,26 @@ function startSession(vocabulary, deckName) {  // 添加 deckName 参数
                 currentWord = historyStack.pop();
                 displayCard(currentWord);
                 prevBtn.disabled = historyStack.length === 0;
+
+                // 进入历史记录只读模式
+                isReviewingHistory = true;
+                rememberedBtn.style.display = 'none'; // 隐藏
+                forgotBtn.style.display = 'none'; // 隐藏
+                nextWordInHistoryBtn.style.display = 'block'; // 显示并居中
             }
         });
 
         const goBackToMenu = () => {
             showScreen(startScreen);
+            isSessionActive = false; // 重置会话激活状态
         };
 
         backToMenuBtn.addEventListener('click', goBackToMenu);
         finishBackToMenuBtn.addEventListener('click', goBackToMenu);
+
+        nextWordInHistoryBtn.addEventListener('click', () => {
+            showNextWord();
+        });
 
         // --- Initial Load ---
         window.onload = () => {
