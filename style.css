@@ -1,0 +1,285 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    background-color: #f0f2f5;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    text-align: center;
+}
+.container {
+    background-color: #fff;
+    padding: 2rem 3rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    width: 90%;
+    max-width: 600px;
+}
+#start-screen h1 {
+    color: #004d40;
+}
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    margin: 0.5rem;
+}
+/* Style for deck selection buttons */
+#deck-selection-container .deck-btn {
+    background-color: #00695c;
+    width: 80%;
+    margin: 0.6rem auto;
+}
+#deck-selection-container .deck-btn:hover {
+    background-color: #004d40;
+}
+#card-container {
+    display: none;
+}
+#word-display {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #004d40;
+    margin-bottom: 1rem;
+    min-height: 80px; /* Ensure consistent height */
+}
+#answer-display {
+    font-size: 2rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+    transition: background-color 0.3s, color 0.3s;
+    line-height: 1.5;
+    min-height: 60px; /* Ensure consistent height */
+}
+#explanation-display {
+    font-size: 1.1rem;
+    color: #616161;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e0e0e0;
+    text-align: left;
+    min-height: 40px;
+}
+.spoiler {
+    background-color: #212121;
+    color: #212121;
+    cursor: pointer;
+    user-select: none;
+}
+.spoiler.revealed {
+    background-color: #f5f5f5;
+    color: #c62828;
+    cursor: default;
+}
+/* 强制 .spoiler 规则覆盖 #explanation-display 的 ID 规则 */
+#explanation-display.spoiler {
+    color: #212121;/* 匹配背景色以隐藏 */
+    background-color: #212121;/* 匹配背景色以隐藏 */
+    border-top: none; /* 隐藏状态下不显示分隔线 */
+}
+
+/* 强制 .revealed 规则使用解释本来的颜色（灰色），而不是答案的红色 */
+#explanation-display.spoiler.revealed {
+    color: #616161; /* 恢复为解释的原始颜色 */
+    background-color: #fff; /* 恢复为容器背景色 */
+    border-top: 1px solid #e0e0e0; /* 恢复分隔线 */
+}
+#controls {
+     margin-top: 1.5rem;
+}
+#controls .btn {
+    width: 120px; /* Default width for remembered/forgot buttons */
+}
+#next-word-in-history-btn {
+    background-color: #00695c; /* Match deck selection button color */
+    width: 80%; /* Make it wider and centered */
+    margin: 0.5rem auto;
+}
+#next-word-in-history-btn:hover {
+    background-color: #004d40;
+}
+#remembered-btn { background-color: #43a047; }
+#remembered-btn:hover { background-color: #388e3c; transform: translateY(-2px); }
+#forgot-btn { background-color: #e53935; }
+#forgot-btn:hover { background-color: #d32f2f; transform: translateY(-2px); }
+#completion-screen {
+    display: none;
+}
+#completion-screen h2 {
+    color: #2e7d32;
+    font-size: 2rem;
+}
+
+/* --- New Styles --- */
+#progress-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    margin-bottom: 2rem;
+}
+#progress-bar {
+    width: 0%;
+    height: 20px;
+    background-color: #4CAF50;
+    border-radius: 5px;
+    text-align: center;
+    line-height: 20px;
+    color: white;
+    font-weight: bold;
+    transition: width 0.5s ease-in-out;
+}
+#nav-controls {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
+#nav-controls .btn {
+    background-color: #607d8b;
+    font-size: 0.9rem;
+    padding: 10px 20px;
+    width: auto;
+}
+#nav-controls .btn:hover {
+    background-color: #546e7a;
+}
+#nav-controls .btn:disabled {
+    background-color: #bdbdbd;
+    cursor: not-allowed;
+    transform: none;
+}
+#mode-selection-container {
+    margin-bottom: 2rem;
+    text-align: left;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 1.5rem;
+}
+#mode-selection-container label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+#mode-selection-container label:hover {
+    background-color: #f0f2f5;
+}
+#mode-selection-container input[type="radio"] {
+    margin-right: 10px;
+    accent-color: #00695c;
+    transform: scale(1.1);
+}
+/* 导入词库相关样式 */
+#import-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+}
+
+.import-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e0e0e0, transparent);
+    margin-bottom: 1.5rem;
+}
+
+#import-section h3 {
+    color: #37474f;
+    margin-bottom: 1rem;
+}
+
+.import-btn {
+    background-color: #1976d2;
+    width: 80%;
+    margin: 0.6rem auto;
+}
+
+.import-btn:hover {
+    background-color: #1565c0;
+}
+
+#import-info {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #757575;
+}
+
+#import-info details {
+    margin-top: 0.5rem;
+    text-align: left;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#import-info summary {
+    cursor: pointer;
+    color: #1976d2;
+    font-weight: 500;
+}
+
+#import-info summary:hover {
+    text-decoration: underline;
+}
+
+.format-example {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.format-example pre {
+    background-color: #fff;
+    padding: 0.75rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+    border: 1px solid #e0e0e0;
+}
+
+/* 导入成功/失败提示 */
+.import-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+
+.import-success {
+    background-color: #43a047;
+}
+
+.import-error {
+    background-color: #e53935;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
