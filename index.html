@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>钧鸢的阿拉伯语记忆</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+    <div id="start-screen">
+        <h1>选择词库</h1>
+
+        <div id="mode-selection-container">
+            <label>
+                <input type="radio" name="mode" value="zh-ar" checked> 显示中文背阿语
+            </label>
+            <label>
+                <input type="radio" name="mode" value="ar-zh"> 显示阿语背中文
+            </label>
+            <label>
+                <input type="radio" name="mode" value="mixed"> 混合模式
+            </label>
+        </div>
+
+        <div id="deck-selection-container">
+        </div>
+
+        <div id="import-section">
+            <div class="import-divider"></div>
+            <h3>导入新词库</h3>
+            <input type="file" id="file-input" accept=".json,.csv,.js,.txt" style="display: none;">
+            <button id="import-btn" class="btn import-btn">
+              📁 选择文件导入
+            </button>
+            <div id="import-info">
+                <p>支持格式：JSON、CSV、JS对象</p>
+                <details>
+                    <summary>查看格式要求</summary>
+                    <div class="format-example">
+                        <strong>格式1 - 多词库批量导入（推荐）：</strong>
+                        <pre>{
+    "第二课：你好": [
+        {
+        "chinese": "谁 (疑问代词)",
+        "arabic": "مَنْ",
+        "explanation": "مَنْ هُوَ؟ (他是谁？)"
+        }
+    ],
+    "第三课：你叫什么名字": [...]
+    }</pre>
+                        <strong>格式2 - 单词库JSON：</strong>
+                        <pre>{
+    "deckName": "基础词汇",
+    "words": [
+        {
+        "chinese": "你好",
+        "arabic": "مرحبا",
+        "explanation": "常用问候语"
+        }
+    ]
+    }</pre>
+                        <strong>格式3 - CSV表格：</strong>
+                        <pre>中文,阿拉伯语,解释
+    你好,مرحبا,常用问候语
+    谢谢,شكرا,表示感谢</pre>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+        <div id="card-container">
+            <div id="progress-container">
+                <div id="progress-bar">0%</div>
+            </div>
+            <h2 id="word-display"></h2>
+            <div id="answer-display" class="spoiler" title="点击显示/隐藏答案"></div>
+   <p id="explanation-display" class="spoiler"></p>
+
+
+            <div id="controls">
+                <button id="remembered-btn" class="btn">记住了</button>
+                <button id="forgot-btn" class="btn">没记住</button>
+                <button id="next-word-in-history-btn" class="btn" style="display: none;">下一个词</button>
+            </div>
+            <div id="nav-controls">
+                <button id="prev-btn" class="btn">上一个词</button>
+                <button id="back-to-menu-btn" class="btn">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="completion-screen">
+            <h2>🎉 恭喜你完成了本词库的记忆 🎉</h2>
+            <p>所有单词都已牢牢记住！</p>
+            <button id="finish-back-to-menu-btn" class="btn" style="background-color: #00695c;">返回菜单</button>
+        </div>
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
+            <h3 style="color: #37474f; margin-bottom: 1rem;">数据管理</h3>
+
+            <!-- 第一行按钮 -->
+            <button id="view-stats-btn" class="btn" style="background-color: #673ab7; width: 80%; margin: 0.6rem auto;">
+                📊 查看学习统计
+            </button>
+
+            <!-- 第二行按钮 -->
+            <button id="export-backup-btn" class="btn" style="background-color: #00897b; width: 80%; margin: 0.6rem auto;">
+                💾 导出备份文件
+            </button>
+
+            <!-- 第三行按钮 -->
+            <button id="import-backup-btn" class="btn" style="background-color: #1976d2; width: 80%; margin: 0.6rem auto;">
+                📂 导入备份文件
+            </button>
+
+            <!-- 第四行按钮 -->
+            <button id="check-storage-btn" class="btn" style="background-color: #ff6f00; width: 80%; margin: 0.6rem auto;">
+                💿 查看存储空间
+            </button>
+
+            <!-- 第五行按钮（危险操作） -->
+            <button id="clear-data-btn" class="btn" style="background-color: #f44336; width: 80%; margin: 0.6rem auto;">
+                🗑️ 清除所有数据
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+
+</body>
+</html>
