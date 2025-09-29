@@ -6,7 +6,7 @@ const createWindow = () => {
     height: 960
   });
   win.setMenu(null);
-  win.loadFile('AM-v1.0.html')
+  win.loadFile('index.html')
 }
 
 app.whenReady().then(() => {
