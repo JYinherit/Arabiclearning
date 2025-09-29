@@ -19,5 +19,8 @@
   "homepage": "https://github.com/OctagonalStar/Arabiclearning#readme",
   "devDependencies": {
     "electron": "^38.2.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3"
   }
 }
