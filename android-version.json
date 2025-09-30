@@ -1,0 +1,10 @@
+{
+  "latestVersion": "1.0.0",
+  "latestVersionCode": 1,
+  "releasePage": "https://github.com/JYinherit/Arabiclearning/releases",
+  "apkDownloadUrl": "https://github.com/JYinherit/Arabiclearning/releases/download/v1.0.0/app-release.apk",
+  "releaseNotes": [
+    "初始版本发布"
+  ],
+  "forceUpdate": false
+}

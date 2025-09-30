@@ -101,3 +101,5 @@ export function exitReviewMode() {
     dom.rememberedBtn.disabled = false;
     dom.forgotBtn.disabled = false;
 }
+
+window.showImportMessage = showImportMessage;
