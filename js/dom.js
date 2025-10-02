@@ -24,3 +24,9 @@ export const exportBackupBtn = document.getElementById('export-backup-btn');
 export const importBackupBtn = document.getElementById('import-backup-btn');
 export const checkStorageBtn = document.getElementById('check-storage-btn');
 export const clearDataBtn = document.getElementById('clear-data-btn');
+
+// Settings Modal elements
+export const settingsBtn = document.getElementById('settings-btn');
+export const settingsModal = document.getElementById('settings-modal');
+export const closeSettingsBtn = document.querySelector('#settings-modal .close-btn');
+export const modeRadioButtons = document.querySelectorAll('input[name="mode"]');

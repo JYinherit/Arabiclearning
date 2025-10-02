@@ -10,7 +10,7 @@ let currentDeckName = '';
 let activeWords = [];
 let currentWord = null;
 let historyStack = [];
-let currentMode = 'zh-ar';
+let currentMode = storage.getSetting('mode', 'zh-ar'); // 从存储中加载或使用默认值
 let isReviewingHistory = false;
 let sessionStartDate = null;
 let isSessionActive = false;
@@ -94,9 +94,6 @@ function showNextWord() {
 function startSession(vocabulary, deckName) {
     currentDeckName = deckName;
     sessionStartDate = new Date().toDateString();
-
-    const selectedMode = document.querySelector('input[name="mode"]:checked');
-    currentMode = selectedMode ? selectedMode.value : 'zh-ar';
 
     const savedProgress = storage.loadProgress(deckName);
     if (savedProgress) {
@@ -210,6 +207,22 @@ function setupEventListeners() {
     dom.backToMenuBtn.addEventListener('click', goBackToMenu);
     dom.finishBackToMenuBtn.addEventListener('click', goBackToMenu);
     dom.nextWordInHistoryBtn.addEventListener('click', showNextWord);
+
+    // Settings Modal Listeners
+    dom.settingsBtn.addEventListener('click', () => {
+        ui.openSettingsModal();
+        // 确保单选按钮状态与 currentMode 一致
+        dom.modeRadioButtons.forEach(radio => {
+            radio.checked = radio.value === currentMode;
+        });
+    });
+    dom.closeSettingsBtn.addEventListener('click', ui.closeSettingsModal);
+    dom.settingsModal.addEventListener('change', (event) => {
+        if (event.target.name === 'mode') {
+            currentMode = event.target.value;
+            storage.saveSetting('mode', currentMode);
+        }
+    });
 
     dom.importBtn.addEventListener('click', () => dom.fileInput.click());
     dom.fileInput.addEventListener('change', (event) => {

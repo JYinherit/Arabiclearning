@@ -71,6 +71,34 @@ export function clearAllData() {
     }
 }
 
+export function getSetting(key, defaultValue) {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+        if (stored) {
+            const settings = JSON.parse(stored);
+            if (settings && settings[key] !== undefined) {
+                return settings[key];
+            }
+        }
+    } catch (e) {
+        console.error('加载设置失败:', e);
+    }
+    return defaultValue;
+}
+
+export function saveSetting(key, value) {
+    try {
+        let settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || '{}');
+        settings[key] = value;
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    } catch (e) {
+        console.error('保存设置失败:', e);
+        if (e.name === 'QuotaExceededError') {
+            showImportMessage('存储空间不足，无法保存设置', false);
+        }
+    }
+}
+
 export function exportAllDataToFile() {
     const allData = {
         decks: JSON.parse(localStorage.getItem(STORAGE_KEYS.DECKS) || '{}'),

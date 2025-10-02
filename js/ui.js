@@ -75,6 +75,40 @@ export function toggleAnswerVisibility() {
     dom.answerDisplay.classList.toggle('revealed');
 }
 
+export function openSettingsModal() {
+    dom.settingsModal.classList.add('visible');
+    // 添加键盘事件监听，允许按 ESC 退出
+    document.addEventListener('keydown', handleSettingsKeydown);
+}
+
+export function closeSettingsModal() {
+    dom.settingsModal.classList.remove('visible');
+    document.removeEventListener('keydown', handleSettingsKeydown);
+}
+
+function handleSettingsKeydown(event) {
+    if (event.key === 'Escape') {
+        closeSettingsModal();
+    }
+}
+
+// Android Back Button handling (if applicable)
+if (typeof document !== 'undefined') {
+    document.addEventListener('backbutton', (e) => {
+        if (dom.settingsModal.classList.contains('visible')) {
+            e.preventDefault();
+            closeSettingsModal();
+        }
+    });
+}
+
+// Close modal when clicking outside of it
+window.addEventListener('click', (event) => {
+    if (event.target === dom.settingsModal) {
+        closeSettingsModal();
+    }
+});
+
 export function toggleExplanationVisibility() {
     dom.explanationDisplay.classList.toggle('spoiler');
     dom.explanationDisplay.classList.toggle('revealed');

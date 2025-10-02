@@ -5,24 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>钧鸢的阿拉伯语记忆</title>
     <link rel="stylesheet" href="style.css">
+    <!-- 引入 Font Awesome 免费版，用于设置图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
+
+    <!-- 设置按钮 (左上角) -->
+    <button id="settings-btn" title="设置"><i class="fas fa-cog"></i></button>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>应用设置</h2>
+            <div id="mode-selection-container">
+                <h3>选择学习模式</h3>
+                <label>
+                    <input type="radio" name="mode" value="zh-ar" checked> 显示中文背阿语
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="ar-zh"> 显示阿语背中文
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="mixed"> 混合模式
+                </label>
+            </div>
+            <!-- 其他设置项可以放在这里 -->
+        </div>
+    </div>
 
     <div class="container">
     <div id="start-screen">
         <h1>选择词库</h1>
-
-        <div id="mode-selection-container">
-            <label>
-                <input type="radio" name="mode" value="zh-ar" checked> 显示中文背阿语
-            </label>
-            <label>
-                <input type="radio" name="mode" value="ar-zh"> 显示阿语背中文
-            </label>
-            <label>
-                <input type="radio" name="mode" value="mixed"> 混合模式
-            </label>
-        </div>
 
         <div id="deck-selection-container">
         </div>
