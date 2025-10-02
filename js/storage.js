@@ -16,14 +16,14 @@ export function loadDecksFromStorage(vocabularyDecks) {
 
 export function saveDecksToStorage(vocabularyDecks) {
     try {
-        localStorage.setItem(STORAGE_KEYS.DECKS, JSON.stringify(vocabularyDecks));
+        const data = JSON.stringify(vocabularyDecks);
+        if (data.length > 4.5 * 1024 * 1024) { // 检查是否接近5MB限制
+            showImportMessage('数据量较大，建议删除部分词库以释放空间', false);
+        }
+        localStorage.setItem(STORAGE_KEYS.DECKS, data);
         showImportMessage('词库已自动保存到本地', true);
     } catch (e) {
-        if (e.name === 'QuotaExceededError') {
-            showImportMessage('存储空间不足，请清理部分词库', false);
-        } else {
-            console.error('保存失败:', e);
-        }
+        // ... 现有错误处理
     }
 }
 

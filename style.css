@@ -81,18 +81,16 @@ body {
     color: #c62828;
     cursor: default;
 }
-/* 强制 .spoiler 规则覆盖 #explanation-display 的 ID 规则 */
 #explanation-display.spoiler {
-    color: #212121;/* 匹配背景色以隐藏 */
-    background-color: #212121;/* 匹配背景色以隐藏 */
-    border-top: none; /* 隐藏状态下不显示分隔线 */
+    color: #212121 !important;
+    background-color: #212121 !important;
+    border-top: none !important;
 }
 
-/* 强制 .revealed 规则使用解释本来的颜色（灰色），而不是答案的红色 */
 #explanation-display.spoiler.revealed {
-    color: #616161; /* 恢复为解释的原始颜色 */
-    background-color: #fff; /* 恢复为容器背景色 */
-    border-top: 1px solid #e0e0e0; /* 恢复分隔线 */
+    color: #616161 !important;
+    background-color: #fff !important;
+    border-top: 1px solid #e0e0e0 !important;
 }
 #controls {
      margin-top: 1.5rem;

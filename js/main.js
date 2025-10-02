@@ -83,7 +83,7 @@ function showNextWord() {
     if (reviewPool.length > 0) {
         const randomIndex = Math.floor(Math.random() * reviewPool.length);
         currentWord = reviewPool[randomIndex];
-        ui.displayCard(currentWord, currentMode);
+        ui.displayCard(currentWord, currentModeRef.value);
         ui.updateProgressBar(activeWords);
         return;
     }
