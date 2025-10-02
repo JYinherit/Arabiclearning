@@ -70,9 +70,12 @@ export function showImportMessage(message, isSuccess = true) {
     }, 3000);
 }
 
-export function toggleAnswerSpoiler() {
+export function toggleAnswerVisibility() {
     dom.answerDisplay.classList.toggle('spoiler');
     dom.answerDisplay.classList.toggle('revealed');
+}
+
+export function toggleExplanationVisibility() {
     dom.explanationDisplay.classList.toggle('spoiler');
     dom.explanationDisplay.classList.toggle('revealed');
 }

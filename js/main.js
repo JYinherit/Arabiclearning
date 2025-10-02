@@ -202,7 +202,8 @@ function goBackToMenu() {
 // --- Event Listeners ---
 
 function setupEventListeners() {
-    dom.answerDisplay.addEventListener('click', ui.toggleAnswerSpoiler);
+    dom.answerDisplay.addEventListener('click', ui.toggleAnswerVisibility);
+    dom.explanationDisplay.addEventListener('click', ui.toggleExplanationVisibility);
     dom.rememberedBtn.addEventListener('click', handleRemembered);
     dom.forgotBtn.addEventListener('click', handleForgot);
     dom.prevBtn.addEventListener('click', handlePrev);
