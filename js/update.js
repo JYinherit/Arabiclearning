@@ -47,7 +47,7 @@ class UpdateChecker {
         if (window.Android && typeof Android.getAppVersion === 'function') {
             return Android.getAppVersion();
         }
-        return "1.0.0";
+        return "1.0.1";
     }
 
     getVersionCode() {
