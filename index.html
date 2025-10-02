@@ -40,6 +40,16 @@
         <div id="deck-selection-container">
         </div>
 
+        <!-- 随机测试区域 -->
+        <div id="random-test-section" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
+            <h3>随机测试</h3>
+            <p>从指定词库中选择随机单词进行测试。</p>
+            <button id="start-random-test-btn" class="btn" style="background-color: #f44336; width: 80%; margin: 0.6rem auto;">
+                🚀 配置随机测试
+            </button>
+        </div>
+        <!-- 随机测试区域结束 -->
+
         <div id="import-section">
             <div class="import-divider"></div>
             <h3>导入新词库</h3>
@@ -144,6 +154,30 @@
 
     <script src="js/Update.js"></script>
     <script type="module" src="js/main.js"></script>
+
+    <!-- 随机测试配置模态框 -->
+    <div id="random-test-modal" class="modal">
+        <div class="modal-content">
+            <span id="close-random-test-modal-btn" class="close-btn">&times;</span>
+            <h2>配置随机测试</h2>
+            
+            <div id="random-test-deck-selector">
+                <p>请选择要抽取的词库范围：</p>
+                <!-- 词库列表将由 JS 动态生成 -->
+            </div>
+
+            <div id="random-test-count-selector" style="margin-top: 1rem;">
+                <label for="random-test-word-count">抽取单词数量：</label>
+                <input type="number" id="random-test-word-count" min="1" max="300" value="20" style="width: 70px; text-align: center;">
+                <p id="random-test-max-words-info" style="font-size: 0.8em; color: #666;"></p>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 1.5rem; text-align: right;">
+                <button id="cancel-random-test-btn" class="btn" style="background-color: #9e9e9e;">取消</button>
+                <button id="confirm-random-test-btn" class="btn" style="background-color: #4caf50;">开始测试</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

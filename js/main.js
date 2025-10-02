@@ -3,19 +3,31 @@ import * as ui from './ui.js';
 import * as storage from './storage.js';
 import * as stats from './stats.js';
 import { handleFileImport } from './parser.js';
+import { setupRandomTest } from './random.js';
 
 // --- State Variables ---
 const vocabularyDecks = {};
-let currentDeckName = '';
+const currentDeckNameRef = { value: '' }; // 使用引用对象以允许跨模块修改
 let activeWords = [];
 let currentWord = null;
 let historyStack = [];
-let currentMode = storage.getSetting('mode', 'zh-ar'); // 从存储中加载或使用默认值
+const currentModeRef = { value: storage.getSetting('mode', 'zh-ar') }; // 使用引用对象以允许跨模块修改
 let isReviewingHistory = false;
 let sessionStartDate = null;
 let isSessionActive = false;
 
+// Random Test Module Interface
+let randomTestModule = null;
+
 // --- Core Logic ---
+
+function updateStatsDisplay() {
+    // 此函数当前未使用，但保留以备将来扩展。
+}
+
+function setupDeckSelectionScreen() {
+    ui.setupSelectionScreen(vocabularyDecks, startSession);
+}
 
 function initialize(vocabulary) {
     activeWords = vocabulary.map(word => ({
@@ -87,12 +99,12 @@ function showNextWord() {
         return;
     }
 
-    ui.displayCard(currentWord, currentMode);
+    ui.displayCard(currentWord, currentModeRef.value);
     ui.updateProgressBar(activeWords);
 }
 
 function startSession(vocabulary, deckName) {
-    currentDeckName = deckName;
+    currentDeckNameRef.value = deckName;
     sessionStartDate = new Date().toDateString();
 
     const savedProgress = storage.loadProgress(deckName);
@@ -157,7 +169,7 @@ function handleRemembered() {
     }
 
     currentWord.cooldown = 11;
-    storage.saveProgress(currentDeckName, activeWords);
+    storage.saveProgress(currentDeckNameRef.value, activeWords);
     showNextWord();
 }
 
@@ -177,14 +189,14 @@ function handleForgot() {
 
     currentWord.cooldown = Math.floor(Math.random() * 4) + 2;
     currentWord.mistakeCount = (currentWord.mistakeCount || 0) + 1;
-    storage.saveProgress(currentDeckName, activeWords);
+    storage.saveProgress(currentDeckNameRef.value, activeWords);
     showNextWord();
 }
 
 function handlePrev() {
     if (historyStack.length > 0) {
         currentWord = historyStack.pop();
-        ui.displayCard(currentWord, currentMode);
+        ui.displayCard(currentWord, currentModeRef.value);
         dom.prevBtn.disabled = historyStack.length === 0;
         isReviewingHistory = true;
         ui.enterReviewMode();
@@ -213,21 +225,21 @@ function setupEventListeners() {
         ui.openSettingsModal();
         // 确保单选按钮状态与 currentMode 一致
         dom.modeRadioButtons.forEach(radio => {
-            radio.checked = radio.value === currentMode;
+            radio.checked = radio.value === currentModeRef.value;
         });
     });
     dom.closeSettingsBtn.addEventListener('click', ui.closeSettingsModal);
     dom.settingsModal.addEventListener('change', (event) => {
         if (event.target.name === 'mode') {
-            currentMode = event.target.value;
-            storage.saveSetting('mode', currentMode);
+            currentModeRef.value = event.target.value;
+            storage.saveSetting('mode', currentModeRef.value);
         }
     });
 
     dom.importBtn.addEventListener('click', () => dom.fileInput.click());
     dom.fileInput.addEventListener('change', (event) => {
         handleFileImport(event, vocabularyDecks,
-            () => ui.setupSelectionScreen(vocabularyDecks, startSession),
+            setupDeckSelectionScreen, // 使用新的封装函数
             () => storage.saveDecksToStorage(vocabularyDecks)
         );
     });
@@ -256,7 +268,19 @@ function setupEventListeners() {
 window.onload = () => {
     storage.loadDecksFromStorage(vocabularyDecks);
     stats.loadStats();
-    ui.setupSelectionScreen(vocabularyDecks, startSession);
+    setupDeckSelectionScreen(); // 使用新的封装函数
     ui.showScreen(dom.startScreen);
     setupEventListeners();
+
+    // 初始化随机测试模块
+    randomTestModule = setupRandomTest({
+        vocabularyDecks,
+        initialize,
+        currentModeRef,
+        currentDeckNameRef,
+        cardContainer: dom.cardContainer,
+        showScreen: ui.showScreen,
+        showNextWord,
+        incrementSessionCount: stats.incrementSessionCount
+    });
 };

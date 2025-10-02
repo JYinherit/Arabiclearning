@@ -140,3 +140,28 @@ export function exitReviewMode() {
 }
 
 window.showImportMessage = showImportMessage;
+
+// --- Random Test Modal ---
+
+export function openRandomTestModal() {
+    dom.randomTestModal.classList.add('visible');
+    document.addEventListener('keydown', handleRandomTestKeydown);
+}
+
+export function closeRandomTestModal() {
+    dom.randomTestModal.classList.remove('visible');
+    document.removeEventListener('keydown', handleRandomTestKeydown);
+}
+
+function handleRandomTestKeydown(event) {
+    if (event.key === 'Escape') {
+        closeRandomTestModal();
+    }
+}
+
+// Close random test modal when clicking outside of it
+window.addEventListener('click', (event) => {
+    if (event.target === dom.randomTestModal) {
+        closeRandomTestModal();
+    }
+});

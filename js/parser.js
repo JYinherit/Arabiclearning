@@ -1,3 +1,5 @@
+import { fileInput } from './dom.js';
+
 // 解析CSV文件
 function parseCSV(csvText) {
     const lines = csvText.trim().split('\n');

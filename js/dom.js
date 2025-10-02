@@ -30,3 +30,13 @@ export const settingsBtn = document.getElementById('settings-btn');
 export const settingsModal = document.getElementById('settings-modal');
 export const closeSettingsBtn = document.querySelector('#settings-modal .close-btn');
 export const modeRadioButtons = document.querySelectorAll('input[name="mode"]');
+
+// --- Random Test Modal Elements ---
+export const startRandomTestBtn = document.getElementById('start-random-test-btn');
+export const randomTestModal = document.getElementById('random-test-modal');
+export const closeRandomTestModalBtn = document.getElementById('close-random-test-modal-btn');
+export const randomTestDeckSelector = document.getElementById('random-test-deck-selector');
+export const randomTestWordCountInput = document.getElementById('random-test-word-count');
+export const randomTestMaxWordsInfo = document.getElementById('random-test-max-words-info');
+export const cancelRandomTestBtn = document.getElementById('cancel-random-test-btn');
+export const confirmRandomTestBtn = document.getElementById('confirm-random-test-btn');

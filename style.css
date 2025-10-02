@@ -374,3 +374,25 @@ body {
     color: #37474f;
     margin-bottom: 1rem;
 }
+
+/* --- Random Test Modal Styles --- */
+
+#random-test-deck-selector {
+    max-height: 200px; /* 设置最大高度 */
+    overflow-y: auto; /* 内容超出时显示垂直滚动条 */
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+#random-test-deck-selector label {
+    display: block;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+}
+
+#random-test-deck-selector input[type="checkbox"] {
+    margin-right: 10px;
+    accent-color: #00695c;
+}
