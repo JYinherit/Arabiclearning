@@ -96,11 +96,11 @@ body {
      margin-top: 1.5rem;
 }
 #controls .btn {
-    width: 120px; /* Default width for remembered/forgot buttons */
+    width: 120px; 
 }
 #next-word-in-history-btn {
-    background-color: #00695c; /* Match deck selection button color */
-    width: 80%; /* Make it wider and centered */
+    background-color: #00695c; 
+    width: 80%; 
     margin: 0.5rem auto;
 }
 #next-word-in-history-btn:hover {
@@ -109,7 +109,11 @@ body {
 #remembered-btn { background-color: #43a047; }
 #remembered-btn:hover { background-color: #388e3c; transform: translateY(-2px); }
 #forgot-btn { background-color: #e53935; }
-#forgot-btn:hover { background-color: #d32f2f; transform: translateY(-2px); }
+#forgot-btn:hover { background-color: #d32f2f; }
+#hard-btn { background-color: #ff9800; } 
+#hard-btn:hover { background-color: #f57c00; }
+#easy-btn { background-color: #43a047; } 
+#easy-btn:hover { background-color: #388e3c; }
 #completion-screen {
     display: none;
 }

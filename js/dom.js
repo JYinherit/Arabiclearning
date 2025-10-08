@@ -7,8 +7,9 @@ export const wordDisplay = document.getElementById('word-display');
 export const answerDisplay = document.getElementById('answer-display');
 export const explanationDisplay = document.getElementById('explanation-display');
 
-export const rememberedBtn = document.getElementById('remembered-btn');
 export const forgotBtn = document.getElementById('forgot-btn');
+export const hardBtn = document.getElementById('hard-btn'); 
+export const easyBtn = document.getElementById('easy-btn'); 
 export const prevBtn = document.getElementById('prev-btn');
 export const backToMenuBtn = document.getElementById('back-to-menu-btn');
 export const finishBackToMenuBtn = document.getElementById('finish-back-to-menu-btn');

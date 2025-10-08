@@ -21,6 +21,7 @@
     "electron": "^38.2.0"
   },
   "dependencies": {
-    "@capacitor/android": "^7.4.3"
+    "@capacitor/android": "^7.4.3",
+    "serve": "^14.2.5"
   }
 }

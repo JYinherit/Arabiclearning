@@ -7,12 +7,16 @@ export function showScreen(screen) {
     screen.style.display = 'block';
 }
 
-export function updateProgressBar(activeWords) {
-    if (!activeWords || activeWords.length === 0) return;
-    const learnedCount = activeWords.filter(w => (w.stage || 0) >= 1).length;
-    const progress = Math.round((learnedCount / activeWords.length) * 100);
-    dom.progressBar.style.width = progress + '%';
-    dom.progressBar.textContent = progress + '%';
+export function updateProgressBar(completed, total) {
+    if (total > 0) {
+        const progress = Math.round((completed / total) * 100);
+        dom.progressBar.style.width = progress + '%';
+        dom.progressBar.textContent = `${completed} / ${total}`;
+    } else {
+        // 如果没有单词，则重置进度条
+        dom.progressBar.style.width = '0%';
+        dom.progressBar.textContent = '0 / 0';
+    }
 }
 
 export function displayCard(word, currentMode) {
@@ -126,17 +130,20 @@ export function showCompletionScreen(allMastered) {
 }
 
 export function enterReviewMode() {
-    dom.rememberedBtn.style.display = 'none';
     dom.forgotBtn.style.display = 'none';
+    dom.hardBtn.style.display = 'none';
+    dom.easyBtn.style.display = 'none';
     dom.nextWordInHistoryBtn.style.display = 'block';
 }
 
 export function exitReviewMode() {
-    dom.rememberedBtn.style.display = 'inline-block';
     dom.forgotBtn.style.display = 'inline-block';
+    dom.hardBtn.style.display = 'inline-block';
+    dom.easyBtn.style.display = 'inline-block';
     dom.nextWordInHistoryBtn.style.display = 'none';
-    dom.rememberedBtn.disabled = false;
     dom.forgotBtn.disabled = false;
+    dom.hardBtn.disabled = false;
+    dom.easyBtn.disabled = false;
 }
 
 window.showImportMessage = showImportMessage;
