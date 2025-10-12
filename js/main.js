@@ -32,7 +32,7 @@ let randomTestModule = null;
 
 // --- Core Logic ---
 
-function initialize(vocabulary) {
+function initialize(vocabulary, isRandomTest = false) {
   // 仅初始化单词的FSRS状态，不处理会话逻辑
   activeWords = scheduler.initializeWords(vocabulary.map(word => ({
     ...word,
@@ -42,6 +42,15 @@ function initialize(vocabulary) {
   })));
   historyStack = [];
   currentWord = null;
+
+  // 如果是随机测试，则直接填充会话队列
+  if (isRandomTest) {
+    sessionLearnedCount.clear();
+    sessionWordsState.clear();
+    sessionQueue = [...vocabulary]; // 直接使用传入的单词
+    currentSessionTotal = sessionQueue.length;
+    ui.updateProgressBar(0, currentSessionTotal);
+  }
 }
 
 function showNextWord() {

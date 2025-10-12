@@ -124,7 +124,7 @@ export function setupRandomTest(dependencies) {
         const deckNames = selectedDecks.join('、');
         currentDeckNameRef.value = `随机测试 (从${deckNames}中选${randomWords.length}词)`;
         
-        initialize(randomWords);
+        initialize(randomWords, true); // 传入 true 启动随机测试模式
         
         ui.closeRandomTestModal();
         showScreen(cardContainer);
