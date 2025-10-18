@@ -58,7 +58,10 @@ export function setupSelectionScreen(vocabularyDecks, startSessionCallback) {
             button.disabled = true;
             button.title = '此词库暂无内容';
         }
-        button.addEventListener('click', () => startSessionCallback(vocabularyDecks[deckName], deckName));
+        button.addEventListener('click', () => {
+            console.log('Deck button clicked:', deckName);
+            startSessionCallback(vocabularyDecks[deckName], deckName);
+        });
         dom.deckSelectionContainer.appendChild(button);
     });
 }

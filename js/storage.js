@@ -27,7 +27,7 @@ export function saveDecksToStorage(vocabularyDecks) {
     }
 }
 
-export function saveProgress(currentDeckName, activeWords) {
+export function saveProgress(currentDeckName, activeWords, sessionState = null) {
     const progress = {
         currentDeck: currentDeckName,
         wordStates: activeWords.map(w => ({
@@ -39,11 +39,23 @@ export function saveProgress(currentDeckName, activeWords) {
             mistakeCount: w.mistakeCount || 0,
             stage: w.stage || 0,
             nextReviewDate: w.nextReviewDate || null,
-            firstLearnedDate: w.firstLearnedDate || null
+            firstLearnedDate: w.firstLearnedDate || null,
+            difficulty: w.difficulty,
+            stability: w.stability,
+            retrievability: w.retrievability,
+            reviews: w.reviews || [],
+            lastReview: w.lastReview,
+            dueDate: w.dueDate,
+            consecutiveCorrect: w.consecutiveCorrect || 0,
+            totalReviews: w.totalReviews || 0,
+            easeFactor: w.easeFactor || 2.5
         })),
         lastUpdate: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(progress));
+    if (sessionState) {
+        saveSessionState(currentDeckName, sessionState);
+    }
 }
 
 export function loadProgress(deckName) {
@@ -174,7 +186,10 @@ export function checkStorageUsage() {
 
     for (let key in localStorage) {
         const value = localStorage.getItem(key);
-        const size = key.length + (value ? value.length : 0);
+        // Bug 6 修复：计算字节数而不是字符数
+        const keySize = new Blob([key]).size;
+        const valueSize = value ? new Blob([value]).size : 0;
+        const size = keySize + valueSize;
         totalSize += size;
 
         if (key.includes('decks')) {
@@ -201,4 +216,19 @@ export function checkStorageUsage() {
     message += `\n预计还可导入约 ${Math.floor((5120 - parseFloat(totalKB)) / 50)} 个词库`;
 
     alert(message);
+}
+export function saveSessionState(deckName, sessionState) {
+    const key = `${STORAGE_KEYS.PROGRESS}_${deckName}_session`;
+    localStorage.setItem(key, JSON.stringify(sessionState));
+}
+
+export function loadSessionState(deckName) {
+    const key = `${STORAGE_KEYS.PROGRESS}_${deckName}_session`;
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : null;
+}
+
+export function clearSessionState(deckName) {
+    const key = `${STORAGE_KEYS.PROGRESS}_${deckName}_session`;
+    localStorage.removeItem(key);
 }

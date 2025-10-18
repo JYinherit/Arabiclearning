@@ -5,6 +5,7 @@ import * as stats from './stats.js';
 import { handleFileImport } from './parser.js';
 import { setupRandomTest } from './random.js';
 import ReviewScheduler, { RATING } from './memory.js'; // 导入新的记忆系统
+import { setupRegularStudy } from './regularStudy.js';
 
 // --- State Variables ---
 const vocabularyDecks = {};
@@ -23,6 +24,13 @@ let sessionLearnedCount = new Map(); // 跟踪每个单词在当前会话中被�
 const MAX_SESSION_WORDS = 10000; // 每次会话最多学习的单词数
 let currentSessionTotal = 0; // 当前会话的实际单词总数
 let sessionWordsState = new Map(); // 跟踪会话中单词的状态，例如FSRS是否已锁定
+let sessionState = {
+    sessionQueue: [],
+    sessionLearnedCount: new Map(),
+    sessionWordsState: new Map(),
+    currentSessionTotal: 0,
+    completedCount: 0
+};
 
 // 新的记忆调度器
 const scheduler = new ReviewScheduler();
@@ -30,16 +38,15 @@ const scheduler = new ReviewScheduler();
 // Random Test Module Interface
 let randomTestModule = null;
 
+// Regular Study Module Interface (Bug 5 依赖)
+let regularStudyModule = null;
+
 // --- Core Logic ---
 
 function initialize(vocabulary, isRandomTest = false) {
-  // 仅初始化单词的FSRS状态，不处理会话逻辑
-  activeWords = scheduler.initializeWords(vocabulary.map(word => ({
-    ...word,
-    // 确保所有单词都有FSRS的默认字段
-    ...scheduler.fsrs.initCard(),
-    ...word // 原始单词数据覆盖默认值
-  })));
+  // Bug 4 修复：简化 FSRS 初始化，scheduler.initializeWords 应该负责确保必要的字段存在，避免重复初始化或覆盖。
+  activeWords = scheduler.initializeWords(vocabulary);
+  
   historyStack = [];
   currentWord = null;
 
@@ -47,173 +54,226 @@ function initialize(vocabulary, isRandomTest = false) {
   if (isRandomTest) {
     sessionLearnedCount.clear();
     sessionWordsState.clear();
-    sessionQueue = [...vocabulary]; // 直接使用传入的单词
+    // Bug 4 修复：使用 activeWords，其中包含 FSRS 初始化后的数据
+    sessionQueue = [...activeWords]; 
     currentSessionTotal = sessionQueue.length;
     ui.updateProgressBar(0, currentSessionTotal);
   }
 }
 
-function showNextWord() {
-  isReviewingHistory = false;
-  ui.exitReviewMode();
 
-  if (currentWord && !historyStack.includes(currentWord)) {
-      historyStack.push(currentWord);
-  }
-  dom.prevBtn.disabled = historyStack.length === 0;
-
-  if (sessionQueue.length === 0) {
-    // 如果会话队列为空，则认为本次学习结束
-    const allMastered = activeWords.every(w => (w.stage || 0) >= 4);
-    ui.showCompletionScreen(allMastered);
-    // 可以在这里保存一次最终进度
-    storage.saveProgress(currentDeckNameRef.value, activeWords);
-    return;
-  }
-
-  // 从会话队列的头部取出一个单词
-  currentWord = sessionQueue.shift();
-
-  ui.displayCard(currentWord, currentModeRef.value);
-}
-
-function startSession(vocabulary, deckName) {
+// 修改 startSession 函数
+function startSession(vocabulary, deckName, isRandomTest = false) {
     currentDeckNameRef.value = deckName;
     sessionStartDate = new Date().toDateString();
 
-    initialize(vocabulary); // 初始化所有单词的FSRS状态
+    initialize(vocabulary, isRandomTest);
 
     const savedProgress = storage.loadProgress(deckName);
     if (savedProgress) {
-        // 合并已保存的进度
+        // 合并已保存的进度到单词
         activeWords = activeWords.map(word => {
             const saved = savedProgress.find(s => s.chinese === word.chinese && s.arabic === word.arabic);
             return saved ? { ...word, ...saved } : word;
         });
+        
+        // 恢复会话状态
+        const savedSessionState = storage.loadSessionState(deckName);
+        if (savedSessionState && !isRandomTest) {
+            restoreSessionState(savedSessionState); // Bug 2 修复：不再传入 vocabulary
+        }
     }
 
-    // --- 初始化会话队列 ---
-    sessionLearnedCount.clear(); // 清空上次会话的计数
-    sessionWordsState.clear(); // 清空会话单词状态
-    const dueWords = scheduler.getDueWords(activeWords);
-
-    // 限制本次会话的单词数量并随机打乱
-    const sessionWords = dueWords.slice(0, MAX_SESSION_WORDS)
-                                 .sort(() => Math.random() - 0.5);
-    
-    sessionQueue = [...sessionWords];
-    currentSessionTotal = sessionQueue.length; // 记录当前会话的实际单词总数
+    // 如果没有恢复会话状态，则初始化新的会话
+    if (sessionQueue.length === 0 && !isRandomTest) {
+        initializeNewSession(vocabulary);
+    }
 
     if (sessionQueue.length === 0) {
-        // 如果没有到期的单词，也显示完成界面
         const allMastered = activeWords.every(w => (w.stage || 0) >= 4);
         ui.showCompletionScreen(allMastered);
         return;
     }
 
-    // 在开始前初始化进度条
-    ui.updateProgressBar(0, currentSessionTotal);
+    // 使用恢复的或新的进度更新进度条
+    const completedCount = sessionState.completedCount || 0;
+    const totalCount = sessionState.currentSessionTotal || sessionQueue.length;
+    ui.updateProgressBar(completedCount, totalCount);
 
     ui.showScreen(dom.cardContainer);
     showNextWord();
 }
 
-function setupDeckSelectionScreen() {
-    ui.setupSelectionScreen(vocabularyDecks, startSession);
+// 新增函数：恢复会话状态
+function restoreSessionState(savedState) {
+    // 恢复基本会话状态
+    sessionState = {
+        ...savedState,
+        sessionLearnedCount: new Map(savedState.sessionLearnedCount),
+        sessionWordsState: new Map(savedState.sessionWordsState)
+    };
+    
+    // 恢复会话队列（需要找到对应的单词对象）
+    sessionQueue = savedState.sessionQueue.map(wordKey => {
+        // Bug 2 修复：使用 activeWords 查找，activeWords 包含最新的进度信息
+        return activeWords.find(w => w.chinese === wordKey.chinese && w.arabic === wordKey.arabic);
+    }).filter(Boolean); // 过滤掉找不到的单词
+    
+    currentSessionTotal = sessionState.currentSessionTotal;
 }
 
-// 修改按钮处理函数
+// 新增函数：初始化新会话
+function initializeNewSession(vocabulary) {
+    const dueWords = scheduler.getDueWords(vocabulary);
+    const sessionWords = dueWords.slice(0, MAX_SESSION_WORDS)
+                                 .sort(() => Math.random() - 0.5);
+    
+    sessionQueue = [...sessionWords];
+    currentSessionTotal = sessionQueue.length;
+    
+    // 初始化会话状态
+    sessionState = {
+        sessionQueue: sessionQueue.map(w => ({ chinese: w.chinese, arabic: w.arabic })), // 只保存关键信息用于恢复
+        sessionLearnedCount: new Map(),
+        sessionWordsState: new Map(),
+        currentSessionTotal: currentSessionTotal,
+        completedCount: 0
+    };
+}
+
+// 修改 showNextWord 函数，更新会话状态
+function showNextWord() {
+    isReviewingHistory = false;
+    ui.exitReviewMode();
+
+    if (currentWord && !historyStack.includes(currentWord)) {
+        historyStack.push(currentWord);
+    }
+    dom.prevBtn.disabled = historyStack.length === 0;
+
+    if (sessionQueue.length === 0) {
+        const allMastered = activeWords.every(w => (w.stage || 0) >= 4);
+        ui.showCompletionScreen(allMastered);
+        // 确保会话结束时进度条达到100%
+        ui.updateProgressBar(currentSessionTotal, currentSessionTotal);
+        // 清除会话状态
+        storage.clearSessionState(currentDeckNameRef.value);
+        storage.saveProgress(currentDeckNameRef.value, activeWords);
+        return;
+    }
+
+    currentWord = sessionQueue.shift();
+    ui.displayCard(currentWord, currentModeRef.value);
+    
+    // 进度条更新逻辑已移至 handleEasy
+}
+
+// 修改各个处理函数，保存会话状态
 function handleForgot() {
-  if (!currentWord || isReviewingHistory) return;
-  
-  // 更新进度以反映刚刚完成的单词
-  const completedCount = currentSessionTotal - sessionQueue.length;
-  ui.updateProgressBar(completedCount, currentSessionTotal);
+    if (!currentWord || isReviewingHistory) return;
+    
+    if (!isSessionActive) {
+        stats.incrementSessionCount();
+        isSessionActive = true;
+    }
 
-  if (!isSessionActive) {
-    stats.incrementSessionCount();
-    isSessionActive = true;
-  }
+    const wordState = sessionWordsState.get(currentWord.chinese) || {};
+    if (!wordState.fsrsLocked) {
+        currentWord = scheduler.processReview(currentWord, RATING.AGAIN);
+        wordState.fsrsLocked = true;
+        sessionWordsState.set(currentWord.chinese, wordState);
+    }
 
-  const wordState = sessionWordsState.get(currentWord.chinese) || {};
-  if (!wordState.fsrsLocked) {
-      // 第一次选择“忘记”或“模糊”，立即更新FSRS状态并锁定
-      currentWord = scheduler.processReview(currentWord, RATING.AGAIN);
-      wordState.fsrsLocked = true;
-      sessionWordsState.set(currentWord.chinese, wordState);
-      storage.saveProgress(currentDeckNameRef.value, activeWords);
-  }
+    sessionLearnedCount.set(currentWord.chinese, 0);
 
-  // 重置会话中的“记得”次数
-  sessionLearnedCount.set(currentWord.chinese, 0);
+    const reinsertIndex = Math.min(sessionQueue.length, Math.floor(Math.random() * 4) + 2);
+    sessionQueue.splice(reinsertIndex, 0, currentWord);
+    
+    // 更新并保存会话状态
+    updateAndSaveSessionState();
 
-  // 将单词重新插入到队列的靠前位置（例如，2-5位之后）
-  const reinsertIndex = Math.min(sessionQueue.length, Math.floor(Math.random() * 4) + 2);
-  sessionQueue.splice(reinsertIndex, 0, currentWord);
-
-  showNextWord();
+    showNextWord();
 }
 
 function handleHard() {
-  if (!currentWord || isReviewingHistory) return;
+    if (!currentWord || isReviewingHistory) return;
 
-  // 更新进度以反映刚刚完成的单词
-  const completedCount = currentSessionTotal - sessionQueue.length;
-  ui.updateProgressBar(completedCount, currentSessionTotal);
+    if (!isSessionActive) {
+        stats.incrementSessionCount();
+        isSessionActive = true;
+    }
 
-  if (!isSessionActive) {
-    stats.incrementSessionCount();
-    isSessionActive = true;
-  }
+    const wordState = sessionWordsState.get(currentWord.chinese) || {};
+    if (!wordState.fsrsLocked) {
+        currentWord = scheduler.processReview(currentWord, RATING.HARD);
+        wordState.fsrsLocked = true;
+        sessionWordsState.set(currentWord.chinese, wordState);
+    }
 
-  const wordState = sessionWordsState.get(currentWord.chinese) || {};
-  if (!wordState.fsrsLocked) {
-      // 第一次选择“忘记”或“模糊”，立即更新FSRS状态并锁定
-      currentWord = scheduler.processReview(currentWord, RATING.HARD);
-      wordState.fsrsLocked = true;
-      sessionWordsState.set(currentWord.chinese, wordState);
-      storage.saveProgress(currentDeckNameRef.value, activeWords);
-  }
+    sessionLearnedCount.set(currentWord.chinese, 0);
+    const reinsertIndex = Math.min(sessionQueue.length, Math.floor(Math.random() * 4) + 2);
+    sessionQueue.splice(reinsertIndex, 0, currentWord);
+    
+    // 更新并保存会话状态
+    updateAndSaveSessionState();
 
-  // 与“忘记”逻辑相同，重置计数并重新插入队列
-  sessionLearnedCount.set(currentWord.chinese, 0);
-  const reinsertIndex = Math.min(sessionQueue.length, Math.floor(Math.random() * 4) + 2);
-  sessionQueue.splice(reinsertIndex, 0, currentWord);
-
-  showNextWord();
+    showNextWord();
 }
 
 function handleEasy() {
-  if (!currentWord || isReviewingHistory) return;
+    if (!currentWord || isReviewingHistory) return;
 
-  // 更新进度以反映刚刚完成的单词
-  const completedCount = currentSessionTotal - sessionQueue.length;
-  ui.updateProgressBar(completedCount, currentSessionTotal);
-
-  if (!isSessionActive) {
-    stats.incrementSessionCount();
-    isSessionActive = true;
-  }
-
-  const wordId = currentWord.chinese;
-  const currentCount = (sessionLearnedCount.get(wordId) || 0) + 1;
-  sessionLearnedCount.set(wordId, currentCount);
-
-  if (currentCount < 3) {
-    // 未达到3次，将单词放到队列末尾
-    sessionQueue.push(currentWord);
-  } else {
-    // 达到3次，认为本次会话已学会
-    const wordState = sessionWordsState.get(currentWord.chinese) || {};
-    if (!wordState.fsrsLocked) {
-        // 仅当FSRS状态未被锁定时才更新为EASY
-        currentWord = scheduler.processReview(currentWord, RATING.EASY);
-        storage.saveProgress(currentDeckNameRef.value, activeWords);
+    if (!isSessionActive) {
+        stats.incrementSessionCount();
+        isSessionActive = true;
     }
-    // 如果已锁定，则不更新FSRS状态，仅从会话中移除
-  }
 
-  showNextWord();
+    const wordId = currentWord.chinese;
+    const currentCount = (sessionLearnedCount.get(wordId) || 0) + 1;
+    sessionLearnedCount.set(wordId, currentCount);
+
+    if (currentCount < 3) {
+        sessionQueue.push(currentWord);
+    } else {
+        // 单词学习完成
+        sessionState.completedCount = (sessionState.completedCount || 0) + 1;
+
+        // Bug 5 依赖：实时跟踪新单词学习进度
+        if (regularStudyModule && regularStudyModule.isNewWord(currentWord)) {
+            regularStudyModule.incrementTodayLearned(currentDeckNameRef.value);
+        }
+        // Bug 3 修复：移除重复的进度条更新，现在在 updateAndSaveSessionState 中统一处理
+
+        const wordState = sessionWordsState.get(currentWord.chinese) || {};
+        if (!wordState.fsrsLocked) {
+            currentWord = scheduler.processReview(currentWord, RATING.EASY);
+        }
+    }
+    
+    // 更新并保存会话状态
+    updateAndSaveSessionState();
+
+    showNextWord();
+}
+
+// 新增函数：更新并保存会话状态
+function updateAndSaveSessionState() {
+    sessionState = {
+        sessionQueue: sessionQueue.map(w => ({ chinese: w.chinese, arabic: w.arabic })),
+        sessionLearnedCount: Array.from(sessionLearnedCount.entries()),
+        sessionWordsState: Array.from(sessionWordsState.entries()),
+        currentSessionTotal: currentSessionTotal,
+        completedCount: sessionState.completedCount || 0
+    };
+    
+    storage.saveProgress(currentDeckNameRef.value, activeWords, sessionState);
+    
+    // Bug 3 修复：统一在此处更新进度条
+    ui.updateProgressBar(sessionState.completedCount, currentSessionTotal);
+}
+
+function setupDeckSelectionScreen() {
+    ui.setupSelectionScreen(vocabularyDecks, startSession);
 }
 
 function handlePrev() {
@@ -234,6 +294,17 @@ function goBackToMenu() {
 // --- Event Listeners ---
 
 function setupEventListeners() {
+    // Bug 7 修复：先移除旧监听器，防止重复绑定
+    dom.answerDisplay.removeEventListener('click', ui.toggleAnswerVisibility);
+    dom.explanationDisplay.removeEventListener('click', ui.toggleExplanationVisibility);
+    dom.forgotBtn.removeEventListener('click', handleForgot);
+    dom.hardBtn.removeEventListener('click', handleHard);
+    dom.easyBtn.removeEventListener('click', handleEasy);
+    dom.prevBtn.removeEventListener('click', handlePrev);
+    dom.backToMenuBtn.removeEventListener('click', goBackToMenu);
+    dom.finishBackToMenuBtn.removeEventListener('click', goBackToMenu);
+    dom.nextWordInHistoryBtn.removeEventListener('click', showNextWord);
+
     dom.answerDisplay.addEventListener('click', ui.toggleAnswerVisibility);
     dom.explanationDisplay.addEventListener('click', ui.toggleExplanationVisibility);
 
@@ -298,10 +369,19 @@ function setupEventListeners() {
 
 // 数据迁移 (在应用启动时调用)
 function migrateDataIfNeeded() {
-  const needsMigration = activeWords.some(word => word.difficulty === undefined);
+  // Bug 1 修复：检查所有词库中的单词，而不是依赖可能为空的 activeWords
+  let needsMigration = false;
+  for (const deckName in vocabularyDecks) {
+    const deck = vocabularyDecks[deckName];
+    if (deck && Array.isArray(deck) && deck.some(word => word.difficulty === undefined)) {
+      needsMigration = true;
+      console.log(`检测到词库 "${deckName}" 包含旧数据，正在迁移到FSRS系统...`);
+      // 使用 scheduler.migrateExistingProgress 处理特定词库
+      vocabularyDecks[deckName] = scheduler.migrateExistingProgress(deck);
+    }
+  }
+
   if (needsMigration) {
-    console.log('检测到旧数据，正在迁移到FSRS系统...');
-    activeWords = scheduler.migrateExistingProgress(activeWords);
     storage.saveDecksToStorage(vocabularyDecks);
   }
 }
@@ -326,6 +406,18 @@ window.onload = () => {
         currentDeckNameRef,
         cardContainer: dom.cardContainer,
         showScreen: ui.showScreen,
+        showNextWord,
+        incrementSessionCount: stats.incrementSessionCount,
+    });
+    // 初始化规律学习功能
+    regularStudyModule = setupRegularStudy({ // Bug 5 依赖：捕获模块实例
+        vocabularyDecks,
+        currentDeckNameRef,
+        currentModeRef,
+        scheduler,
+        startSession,
+        showScreen: ui.showScreen,
+        cardContainer: dom.cardContainer,
         showNextWord,
         incrementSessionCount: stats.incrementSessionCount
     });

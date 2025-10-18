@@ -398,3 +398,23 @@ body {
     margin-right: 10px;
     accent-color: #00695c;
 }
+#regular-study-btn {
+    background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
+}
+
+#regular-study-btn:hover {
+    background: linear-gradient(135deg, #8e24aa 0%, #5e35b1 100%);
+    transform: translateY(-2px);
+}
+
+#regular-study-deck-selector label {
+    transition: background-color 0.2s;
+}
+
+#regular-study-deck-selector label:hover {
+    background-color: #f0f2f5;
+}
+
+#regular-study-deck-selector input[type="radio"] {
+    accent-color: #9c27b0;
+}

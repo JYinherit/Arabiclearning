@@ -283,6 +283,11 @@ export class ReviewScheduler {
    * 处理复习结果
    */
   processReview(word, rating) {
+    // Bug 8 修复：添加对 word 参数的验证
+    if (!word || typeof word !== 'object' || !word.arabic || !word.chinese) {
+        throw new Error(`无效的单词对象: ${JSON.stringify(word)}`);
+    }
+    
     if (!this.rating[rating] && ![1,2,3].includes(rating)) {
       throw new Error(`无效的评分: ${rating}. 请使用 RATING.FORGOT(1), RATING.HARD(2), RATING.EASY(3)`);
     }

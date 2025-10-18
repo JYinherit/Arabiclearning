@@ -70,6 +70,11 @@ function parseJSON(jsonText) {
     try {
         // 清理文本
         let cleanedText = jsonText.trim();
+        
+        // Bug 9 修复：移除可能的UTF-8 BOM字符，增强健壮性
+        if (cleanedText.startsWith('\uFEFF')) {
+            cleanedText = cleanedText.substring(1);
+        }
 
         // 1. 尝试直接解析为标准JSON
         try {
