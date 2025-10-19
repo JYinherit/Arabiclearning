@@ -44,18 +44,16 @@ let regularStudyModule = null;
 // --- Core Logic ---
 
 function initialize(vocabulary, isRandomTest = false) {
-  // Bug 4 修复：简化 FSRS 初始化，scheduler.initializeWords 应该负责确保必要的字段存在，避免重复初始化或覆盖。
+  // Bug 4 修复：简化 FSRS 初始化，scheduler.initializeWords 应该负责确保必要的字段存在
   activeWords = scheduler.initializeWords(vocabulary);
   
   historyStack = [];
   currentWord = null;
 
-  // 如果是随机测试，则直接填充会话队列
   if (isRandomTest) {
     sessionLearnedCount.clear();
     sessionWordsState.clear();
-    // Bug 4 修复：使用 activeWords，其中包含 FSRS 初始化后的数据
-    sessionQueue = [...activeWords]; 
+    sessionQueue = [...activeWords]; // 使用初始化后的 activeWords
     currentSessionTotal = sessionQueue.length;
     ui.updateProgressBar(0, currentSessionTotal);
   }
@@ -80,7 +78,7 @@ function startSession(vocabulary, deckName, isRandomTest = false) {
         // 恢复会话状态
         const savedSessionState = storage.loadSessionState(deckName);
         if (savedSessionState && !isRandomTest) {
-            restoreSessionState(savedSessionState); // Bug 2 修复：不再传入 vocabulary
+            restoreSessionState(savedSessionState); // 移除 vocabulary 参数
         }
     }
 
@@ -115,7 +113,6 @@ function restoreSessionState(savedState) {
     
     // 恢复会话队列（需要找到对应的单词对象）
     sessionQueue = savedState.sessionQueue.map(wordKey => {
-        // Bug 2 修复：使用 activeWords 查找，activeWords 包含最新的进度信息
         return activeWords.find(w => w.chinese === wordKey.chinese && w.arabic === wordKey.arabic);
     }).filter(Boolean); // 过滤掉找不到的单词
     
@@ -242,7 +239,6 @@ function handleEasy() {
         if (regularStudyModule && regularStudyModule.isNewWord(currentWord)) {
             regularStudyModule.incrementTodayLearned(currentDeckNameRef.value);
         }
-        // Bug 3 修复：移除重复的进度条更新，现在在 updateAndSaveSessionState 中统一处理
 
         const wordState = sessionWordsState.get(currentWord.chinese) || {};
         if (!wordState.fsrsLocked) {
@@ -369,14 +365,12 @@ function setupEventListeners() {
 
 // 数据迁移 (在应用启动时调用)
 function migrateDataIfNeeded() {
-  // Bug 1 修复：检查所有词库中的单词，而不是依赖可能为空的 activeWords
   let needsMigration = false;
   for (const deckName in vocabularyDecks) {
     const deck = vocabularyDecks[deckName];
     if (deck && Array.isArray(deck) && deck.some(word => word.difficulty === undefined)) {
       needsMigration = true;
       console.log(`检测到词库 "${deckName}" 包含旧数据，正在迁移到FSRS系统...`);
-      // 使用 scheduler.migrateExistingProgress 处理特定词库
       vocabularyDecks[deckName] = scheduler.migrateExistingProgress(deck);
     }
   }

@@ -186,7 +186,6 @@ export function checkStorageUsage() {
 
     for (let key in localStorage) {
         const value = localStorage.getItem(key);
-        // Bug 6 修复：计算字节数而不是字符数
         const keySize = new Blob([key]).size;
         const valueSize = value ? new Blob([value]).size : 0;
         const size = keySize + valueSize;

@@ -345,12 +345,12 @@ export class RegularStudy {
     }
 
     isNewWord(word) {
-        // Bug 5 修复：判断单词是否为新词 (与 prepareStudyQueue 中的逻辑保持一致)
-        return !word.reviews || word.reviews.length === 0 || (word.stage === 0 && word.rememberedCount === 0);
+        // 与 prepareStudyQueue 中的逻辑保持一致
+        return !word.reviews || word.reviews.length === 0 || 
+               (word.stage === 0 && word.rememberedCount === 0);
     }
 
     incrementTodayLearned(deckName) {
-        // Bug 5 修复：实时增加今日已学新词数
         const currentLearned = this.getTodayLearnedWords(deckName);
         this.setTodayLearnedWords(deckName, currentLearned + 1);
     }

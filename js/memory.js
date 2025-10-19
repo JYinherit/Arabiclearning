@@ -285,7 +285,8 @@ export class ReviewScheduler {
   processReview(word, rating) {
     // Bug 8 修复：添加对 word 参数的验证
     if (!word || typeof word !== 'object' || !word.arabic || !word.chinese) {
-        throw new Error(`无效的单词对象: ${JSON.stringify(word)}`);
+        console.error('无效的单词对象:', word);
+        return word; // 或者抛出错误
     }
     
     if (!this.rating[rating] && ![1,2,3].includes(rating)) {
