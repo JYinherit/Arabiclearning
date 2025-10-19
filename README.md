@@ -1,3 +1,6 @@
+***建议使用@OctagonalStar的https://github.com/OctagonalStar/arabic_learning/***
+本库用于测试新功能
+
 # ArabicMemory: 一个专注的阿拉伯语单词记忆工具
 
 本项目由“钧鸢inherit”创建，众多开发者共创，旨在提供一个纯粹、高效的阿拉伯语单词记忆工具。它为阿拉伯语学习者设计，帮助您在背单词的道路上走得更稳、更远。
