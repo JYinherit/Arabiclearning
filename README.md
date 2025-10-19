@@ -1,4 +1,5 @@
-***建议使用@OctagonalStar的https://github.com/OctagonalStar/arabic_learning，本库用以测试新功能***
+***建议使用@OctagonalStar的https://github.com/OctagonalStar/arabic_learning/***
+本库用于测试新功能
 
 # ArabicMemory: 一个专注的阿拉伯语单词记忆工具
 
