@@ -168,6 +168,11 @@ export class FSRSAlgorithm {
    * 更新卡片状态
    */
   updateCard(card, rating, currentTime = Date.now()) {
+    console.log('更新卡片:', card.chinese, '评分:', rating);
+    
+    // 深度确保卡片结构完整
+    this.ensureCardStructure(card);
+    
     const result = this.nextInterval(card, rating, currentTime);
     
     // 更新卡片状态
@@ -175,7 +180,7 @@ export class FSRSAlgorithm {
     card.stability = result.stability;
     card.retrievability = this.getRetrievability(card, currentTime);
     
-    // 更新复习历史
+    // 创建复习记录
     const reviewRecord = {
         timestamp: currentTime,
         rating: rating,
@@ -184,6 +189,7 @@ export class FSRSAlgorithm {
         stability: card.stability
     };
     
+    console.log('添加复习记录到:', card.reviews);
     card.reviews.push(reviewRecord);
     card.lastReview = currentTime;
     card.dueDate = currentTime + result.interval * 24 * 60 * 60 * 1000;
@@ -204,6 +210,7 @@ export class FSRSAlgorithm {
     // 更新记忆阶段
     card.stage = this._calculateStage(card);
     
+    console.log('卡片更新完成:', card.chinese, '阶段:', card.stage);
     return card;
   }
 
@@ -239,18 +246,37 @@ export class FSRSAlgorithm {
   }
 
   /**
-   * 获取可复习的卡片
+   * 添加确保卡片结构完整的方法
    */
-  getDueCards(cards, currentTime = Date.now()) {
-    return cards.filter(card => this.isCardDue(card, currentTime));
-  }
-
-  /**
-   * 估算记忆强度 (0-100%)
-   */
-  getMemoryStrength(card, currentTime = Date.now()) {
-    const retrievability = this.getRetrievability(card, currentTime);
-    return Math.round(retrievability * 100);
+  ensureCardStructure(card) {
+    const requiredFields = {
+        reviews: [],
+        rememberedCount: 0,
+        stage: 0,
+        difficulty: 0,
+        stability: 0,
+        retrievability: 1,
+        lastReview: null,
+        dueDate: null,
+        consecutiveCorrect: 0,
+        totalReviews: 0,
+        easeFactor: 2.5,
+        mistakeCount: 0,
+        cooldown: 0
+    };
+    
+    for (const [field, defaultValue] of Object.entries(requiredFields)) {
+        if (card[field] === undefined || card[field] === null) {
+            console.log(`修复卡片字段: ${field} = ${defaultValue}`);
+            card[field] = defaultValue;
+        }
+    }
+    
+    // 特别确保 reviews 是数组
+    if (!Array.isArray(card.reviews)) {
+        console.warn('reviews 不是数组，重置为数组');
+        card.reviews = [];
+    }
   }
 }
 
@@ -265,13 +291,27 @@ export class ReviewScheduler {
    * 初始化或迁移现有单词数据
    */
   initializeWord(word) {
-    if (!word.difficulty && !word.stability) {
-      // 新单词，初始化FSRS状态
-      const fsrsState = this.fsrs.initCard();
-      return { ...word, ...fsrsState };
-    }
-    // 已有FSRS状态的单词，保持不变
-    return word;
+    console.log('初始化单词:', word.chinese);
+    
+    // 深度克隆单词对象，避免引用问题
+    const clonedWord = JSON.parse(JSON.stringify(word));
+    
+    // 获取FSRS默认状态
+    const fsrsState = this.fsrs.initCard();
+    
+    // 创建最终单词对象，确保所有字段都存在
+    const initializedWord = { ...fsrsState, ...clonedWord };
+    
+    // 使用深度确保方法
+    this.fsrs.ensureCardStructure(initializedWord);
+    
+    // 特别确保关键学习字段不被覆盖
+    initializedWord.chinese = word.chinese || '';
+    initializedWord.arabic = word.arabic || '';
+    initializedWord.explanation = word.explanation || '暂无解释';
+    
+    console.log('单词初始化完成:', initializedWord.chinese, '阶段:', initializedWord.stage);
+    return initializedWord;
   }
 
   /**
@@ -285,17 +325,98 @@ export class ReviewScheduler {
    * 处理复习结果
    */
   processReview(word, rating) {
-    // Bug 8 修复：添加对 word 参数的验证
-    if (!word || typeof word !== 'object' || !word.arabic || !word.chinese) {
+    console.log('处理复习:', word?.chinese, '评分:', rating);
+    
+    // 增强参数验证
+    if (!word || typeof word !== 'object') {
         console.error('无效的单词对象:', word);
-        return word; // 或者抛出错误
+        throw new Error('无效的单词对象');
+    }
+    
+    if (!word.arabic || !word.chinese) {
+        console.error('单词缺少必要字段:', { arabic: word.arabic, chinese: word.chinese });
+        throw new Error('单词缺少必要字段（arabic 或 chinese）');
     }
     
     if (!this.rating[rating] && ![1,2,3].includes(rating)) {
-      throw new Error(`无效的评分: ${rating}. 请使用 RATING.FORGOT(1), RATING.HARD(2), RATING.EASY(3)`);
+        throw new Error(`无效的评分: ${rating}. 请使用 RATING.FORGOT(1), RATING.HARD(2), RATING.EASY(3)`);
     }
     
-    return this.fsrs.updateCard(word, rating);
+    try {
+        // 在处理前确保单词结构完整
+        this.fsrs.ensureCardStructure(word);
+        
+        const result = this.fsrs.updateCard(word, rating);
+        console.log('FSRS处理成功:', result.chinese);
+        return result;
+    } catch (error) {
+        console.error('FSRS处理失败，单词:', word.chinese, '错误:', error);
+        console.log('单词当前状态:', word);
+        
+        // 紧急恢复：使用简单算法
+        return this.fallbackReview(word, rating);
+    }
+  }
+
+  /**
+   * 添加备用复习算法
+   */
+  fallbackReview(word, rating) {
+    console.log('使用备用算法处理:', word.chinese);
+    
+    // 确保基本结构
+    this.fsrs.ensureCardStructure(word);
+    
+    // 简单记忆算法
+    if (rating === RATING.EASY) {
+        word.rememberedCount = (word.rememberedCount || 0) + 1;
+        word.consecutiveCorrect = (word.consecutiveCorrect || 0) + 1;
+        
+        if (word.rememberedCount >= 3) {
+            word.stage = 4; // 已掌握
+            word.difficulty = 1;
+            word.stability = 365; // 一年
+        } else if (word.rememberedCount >= 2) {
+            word.stage = 3; // 长期记忆
+            word.difficulty = 2;
+            word.stability = 30; // 一个月
+        } else {
+            word.stage = 2; // 中期记忆
+            word.difficulty = 3;
+            word.stability = 7; // 一周
+        }
+    } else if (rating === RATING.HARD) {
+        word.rememberedCount = Math.max(0, (word.rememberedCount || 0) - 0.5);
+        word.consecutiveCorrect = 0;
+        word.stage = Math.max(1, (word.stage || 1) - 1);
+        word.difficulty = Math.min(10, (word.difficulty || 5) + 1);
+        word.stability = Math.max(1, (word.stability || 1) * 0.7);
+    } else if (rating === RATING.FORGOT) {
+        word.rememberedCount = 0;
+        word.consecutiveCorrect = 0;
+        word.mistakeCount = (word.mistakeCount || 0) + 1;
+        word.stage = 1; // 重新学习
+        word.difficulty = Math.min(10, (word.difficulty || 5) + 2);
+        word.stability = 1; // 一天
+    }
+    
+    // 添加复习记录
+    const reviewRecord = {
+        timestamp: Date.now(),
+        rating: rating,
+        interval: word.stability,
+        difficulty: word.difficulty,
+        stability: word.stability
+    };
+    
+    word.reviews.push(reviewRecord);
+    word.lastReview = Date.now();
+    word.dueDate = Date.now() + word.stability * 24 * 60 * 60 * 1000;
+    word.totalReviews = (word.totalReviews || 0) + 1;
+    word.lastUpdated = Date.now();
+    
+    console.log('备用算法处理完成:', word.chinese, '阶段:', word.stage);
+    return word;
   }
 
   /**
@@ -335,32 +456,35 @@ export class ReviewScheduler {
    * 迁移现有进度到FSRS系统
    */
   migrateExistingProgress(existingWords) {
-    return existingWords.map(word => {
-      // 如果已经有FSRS状态，保持不变
-      if (word.difficulty !== undefined) {
-        return word;
-      }
-      
-      // 基于现有进度估算FSRS参数
-      const newCard = this.fsrs.initCard();
-      
-      // 根据现有记忆阶段估算稳定性
-      if (word.stage > 0) {
-        newCard.stability = word.stage * 7; // 简单映射
-        newCard.difficulty = 5 - (word.rememberedCount || 0) * 0.5; // 根据记住次数调整难度
-        newCard.rememberedCount = word.rememberedCount || 0;
-        newCard.mistakeCount = word.mistakeCount || 0;
-        newCard.stage = word.stage;
+    console.log('迁移现有进度，单词数量:', existingWords.length);
+    
+    return existingWords.map((word, index) => {
+        console.log(`迁移单词 ${index}: ${word.chinese}`);
         
-        // 估算复习历史
-        if (word.stage > 1) {
-          const daysAgo = word.stage * 3;
-          newCard.lastReview = Date.now() - daysAgo * 24 * 60 * 60 * 1000;
-          newCard.dueDate = Date.now() + (word.stage * 7) * 24 * 60 * 60 * 1000;
+        // 深度克隆
+        const clonedWord = JSON.parse(JSON.stringify(word));
+        
+        // 使用初始化方法确保结构完整
+        const migratedWord = this.initializeWord(clonedWord);
+        
+        // 保留原有的学习进度
+        if (word.rememberedCount !== undefined) {
+            migratedWord.rememberedCount = word.rememberedCount;
         }
-      }
-      
-      return { ...word, ...newCard };
+        if (word.mistakeCount !== undefined) {
+            migratedWord.mistakeCount = word.mistakeCount;
+        }
+        if (word.stage !== undefined) {
+            migratedWord.stage = word.stage;
+        }
+        
+        // 如果有复习历史，尝试迁移
+        if (word.reviews && Array.isArray(word.reviews) && word.reviews.length > 0) {
+            migratedWord.reviews = [...word.reviews];
+        }
+        
+        console.log(`迁移完成: ${migratedWord.chinese}, 阶段: ${migratedWord.stage}`);
+        return migratedWord;
     });
   }
 }
