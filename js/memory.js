@@ -68,38 +68,38 @@ export class FSRSAlgorithm {
     const { difficulty, stability } = card;
     const w = this.params.w;
 
-    // 如果是第一次学习或忘记
-    if (rating === RATING.FORGOT || stability === 0) {
-      return this._handleFirstReview(card, rating);
+    // 修复：正确处理第一次学习的情况
+    if (stability === 0 || card.totalReviews === 0) {
+        return this._handleFirstReview(card, rating);
     }
 
     // 计算新的难度和稳定性
     const newDifficulty = this._calcNewDifficulty(difficulty, rating);
-    const newStability = this._calcNewStability(stability, difficulty, rating);
+    const newStability = this._calcNewStability(stability, difficulty, rating, currentTime);
     
     // 计算间隔
     let interval;
     switch (rating) {
-      case RATING.FORGOT:
-        interval = 1; // 1天后复习
-        break;
-      case RATING.HARD:
-        interval = Math.max(1, Math.round(stability * 0.8)); // 稍短间隔
-        break;
-      case RATING.EASY:
-        interval = Math.max(1, Math.round(stability * 1.5)); // 更长间隔
-        break;
-      default:
-        interval = Math.max(1, Math.round(stability)); // 标准间隔
+        case RATING.FORGOT:
+            interval = 1; // 1分钟后重新学习（测试用，实际应为1天）
+            break;
+        case RATING.HARD:
+            interval = Math.max(1, Math.round(newStability * 0.8));
+            break;
+        case RATING.EASY:
+            interval = Math.max(1, Math.round(newStability * 1.5));
+            break;
+        default:
+            interval = Math.max(1, Math.round(newStability));
     }
 
     // 应用约束
-    interval = Math.max(1, Math.min(interval, 365)); // 限制在1-365天之间
+    interval = Math.max(1, Math.min(interval, 365));
 
     return {
-      interval,
-      difficulty: Math.max(0.1, Math.min(newDifficulty, 10)),
-      stability: Math.max(0.1, Math.min(newStability, 365))
+        interval,
+        difficulty: Math.max(0.1, Math.min(newDifficulty, 10)),
+        stability: Math.max(0.1, Math.min(newStability, 365))
     };
   }
 
@@ -145,18 +145,20 @@ export class FSRSAlgorithm {
   /**
    * 计算新的稳定性
    */
-  _calcNewStability(currentStability, difficulty, rating) {
+  _calcNewStability(currentStability, difficulty, rating, currentTime) {
     const w = this.params.w;
     let newStability;
     
     if (rating === RATING.FORGOT) {
-      newStability = w[8] * Math.pow(difficulty, w[9]) * 
-                    Math.pow(currentStability, w[10]) * 
-                    Math.exp(w[11] * (1 - currentStability));
+        newStability = w[8] * Math.pow(difficulty, w[9]) * 
+                      Math.pow(currentStability, w[10]) * 
+                      Math.exp(w[11] * (1 - currentStability));
     } else {
-      newStability = currentStability * (1 + Math.exp(w[12]) * 
-                    (11 - difficulty) * Math.pow(currentStability, w[13]) * 
-                    (Math.exp(w[14] * (1 - currentStability)) - 1));
+        // 修复：正确的稳定性增长公式
+        const ratingFactor = rating === RATING.HARD ? 0.8 : 1.2;
+        newStability = currentStability * (1 + Math.exp(w[12]) * 
+                      (11 - difficulty) * Math.pow(currentStability, w[13]) * 
+                      (Math.exp(w[14] * (1 - currentStability)) - 1) * ratingFactor);
     }
     
     return Math.max(0.1, Math.min(newStability, 365));
@@ -175,31 +177,31 @@ export class FSRSAlgorithm {
     
     // 更新复习历史
     const reviewRecord = {
-      timestamp: currentTime,
-      rating: rating,
-      interval: result.interval,
-      difficulty: card.difficulty,
-      stability: card.stability
+        timestamp: currentTime,
+        rating: rating,
+        interval: result.interval,
+        difficulty: card.difficulty,
+        stability: card.stability
     };
     
     card.reviews.push(reviewRecord);
     card.lastReview = currentTime;
-    card.dueDate = currentTime + result.interval * 24 * 60 * 60 * 1000; // 转换为毫秒
-    card.totalReviews++;
+    card.dueDate = currentTime + result.interval * 24 * 60 * 60 * 1000;
+    card.totalReviews = (card.totalReviews || 0) + 1;
     card.lastUpdated = currentTime;
 
     // 更新连续正确次数
     if (rating === RATING.FORGOT) {
-      card.consecutiveCorrect = 0;
-      card.mistakeCount++;
+        card.consecutiveCorrect = 0;
+        card.mistakeCount = (card.mistakeCount || 0) + 1;
     } else {
-      card.consecutiveCorrect++;
-      if (rating === RATING.EASY) {
-        card.rememberedCount++;
-      }
+        card.consecutiveCorrect = (card.consecutiveCorrect || 0) + 1;
+        if (rating === RATING.EASY) {
+            card.rememberedCount = (card.rememberedCount || 0) + 1;
+        }
     }
 
-    // 更新记忆阶段 (兼容现有系统)
+    // 更新记忆阶段
     card.stage = this._calculateStage(card);
     
     return card;

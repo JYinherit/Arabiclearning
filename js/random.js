@@ -9,6 +9,7 @@ import * as ui from './ui.js';
  * @param {function} dependencies.initialize - main.js 中的初始化函数
  * @param {object} dependencies.currentModeRef - 对 currentMode 变量的引用 ({ value: string })
  * @param {object} dependencies.currentDeckNameRef - 对 currentDeckName 变量的引用 ({ value: string })
+ * @param {object} dependencies.isSessionActive - 对 isSessionActive 变量的引用 ({ value: boolean })
  * @param {Element} dependencies.cardContainer - 卡片学习容器 DOM 元素
  * @param {function} dependencies.showScreen - ui.js 中的屏幕切换函数
  * @param {function} dependencies.showNextWord - main.js 中的显示下一个词函数
@@ -18,7 +19,7 @@ export function setupRandomTest(dependencies) {
     const { 
         vocabularyDecks, initialize, currentModeRef, currentDeckNameRef, 
         cardContainer, showScreen, showNextWord, 
-        incrementSessionCount 
+        incrementSessionCount, isSessionActive 
     } = dependencies;
 
     // --- Helper Functions ---
@@ -122,7 +123,18 @@ export function setupRandomTest(dependencies) {
         currentModeRef.value = selectedMode ? selectedMode.value : 'zh-ar';
         
         const deckNames = selectedDecks.join('、');
-        currentDeckNameRef.value = `随机测试 (从${deckNames}中选${randomWords.length}词)`;
+        const newDeckName = `随机测试 (从${deckNames}中选${randomWords.length}词)`;
+        
+        // 检查是否正在学习其他词库
+        if (isSessionActive.value && 
+            currentDeckNameRef.value !== newDeckName) {
+            const confirmSwitch = confirm(`当前正在学习词库"${currentDeckNameRef.value}"，确定要切换到"${newDeckName}"吗？当前进度将自动保存。`);
+            if (!confirmSwitch) {
+                return; // 用户取消切换
+            }
+        }
+        
+        currentDeckNameRef.value = newDeckName;
         
         initialize(randomWords, true); // 传入 true 启动随机测试模式
         

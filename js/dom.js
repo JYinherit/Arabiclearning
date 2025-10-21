@@ -1,7 +1,19 @@
+// 添加新的页面引用
+export const studyPage = document.getElementById('study-page');
+export const decksPage = document.getElementById('decks-page');
+export const settingsPage = document.getElementById('settings-page');
+
+// 更新现有的引用
 export const startScreen = document.getElementById('start-screen');
 export const cardContainer = document.getElementById('card-container');
 export const completionScreen = document.getElementById('completion-screen');
 export const deckSelectionContainer = document.getElementById('deck-selection-container');
+
+// 新增 progressContainer 引用
+export const progressContainer = document.getElementById('progress-container');
+
+// 添加新的按钮引用
+export const regularStudyBtn = document.getElementById('regular-study-btn');
 
 export const wordDisplay = document.getElementById('word-display');
 export const answerDisplay = document.getElementById('answer-display');
@@ -26,10 +38,6 @@ export const importBackupBtn = document.getElementById('import-backup-btn');
 export const checkStorageBtn = document.getElementById('check-storage-btn');
 export const clearDataBtn = document.getElementById('clear-data-btn');
 
-// Settings Modal elements
-export const settingsBtn = document.getElementById('settings-btn');
-export const settingsModal = document.getElementById('settings-modal');
-export const closeSettingsBtn = document.querySelector('#settings-modal .close-btn');
 export const modeRadioButtons = document.querySelectorAll('input[name="mode"]');
 
 // --- Random Test Modal Elements ---
@@ -41,3 +49,31 @@ export const randomTestWordCountInput = document.getElementById('random-test-wor
 export const randomTestMaxWordsInfo = document.getElementById('random-test-max-words-info');
 export const cancelRandomTestBtn = document.getElementById('cancel-random-test-btn');
 export const confirmRandomTestBtn = document.getElementById('confirm-random-test-btn');
+
+
+// 确保所有必需的DOM元素都存在
+export function validateDOMElements() {
+    const elements = {
+        studyPage: document.getElementById('study-page'),
+        decksPage: document.getElementById('decks-page'),
+        settingsPage: document.getElementById('settings-page'),
+        startScreen: document.getElementById('start-screen'),
+        cardContainer: document.getElementById('card-container'),
+        completionScreen: document.getElementById('completion-screen'),
+        progressContainer: document.getElementById('progress-container'),
+        progressBar: document.getElementById('progress-bar'),
+        wordDisplay: document.getElementById('word-display'),
+        answerDisplay: document.getElementById('answer-display'),
+        explanationDisplay: document.getElementById('explanation-display'),
+        forgotBtn: document.getElementById('forgot-btn'),
+        hardBtn: document.getElementById('hard-btn'),
+        easyBtn: document.getElementById('easy-btn'),
+        prevBtn: document.getElementById('prev-btn'),
+        backToMenuBtn: document.getElementById('back-to-menu-btn'),
+        finishBackToMenuBtn: document.getElementById('finish-back-to-menu-btn'),
+        nextWordInHistoryBtn: document.getElementById('next-word-in-history-btn')
+    };
+    
+    console.log('DOM元素验证:', elements);
+    return elements;
+}

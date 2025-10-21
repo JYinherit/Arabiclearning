@@ -218,13 +218,41 @@ export function checkStorageUsage() {
 }
 export function saveSessionState(deckName, sessionState) {
     const key = `${STORAGE_KEYS.PROGRESS}_${deckName}_session`;
-    localStorage.setItem(key, JSON.stringify(sessionState));
+    try {
+        // 转换Map为可序列化的数组
+        const serializableState = {
+            ...sessionState,
+            sessionLearnedCount: Array.from(sessionState.sessionLearnedCount.entries()),
+            sessionWordsState: Array.from(sessionState.sessionWordsState.entries()),
+            sessionQueue: sessionState.sessionQueue.map(word => ({
+                chinese: word.chinese,
+                arabic: word.arabic,
+                explanation: word.explanation
+            }))
+        };
+        localStorage.setItem(key, JSON.stringify(serializableState));
+    } catch (error) {
+        console.error('保存会话状态失败:', error);
+    }
 }
 
 export function loadSessionState(deckName) {
     const key = `${STORAGE_KEYS.PROGRESS}_${deckName}_session`;
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : null;
+    try {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            // 恢复Map对象
+            return {
+                ...parsed,
+                sessionLearnedCount: new Map(parsed.sessionLearnedCount),
+                sessionWordsState: new Map(parsed.sessionWordsState)
+            };
+        }
+    } catch (error) {
+        console.error('加载会话状态失败:', error);
+    }
+    return null;
 }
 
 export function clearSessionState(deckName) {

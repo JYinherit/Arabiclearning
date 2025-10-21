@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b69120a5-4ef1-414d-ac8a-b31dc4ad65f5" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/dom.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/dom.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/memory.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/memory.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/random.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/random.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/regularStudy.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/regularStudy.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/storage.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/storage.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/ui.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/ui.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../style.css" beforeDir="false" afterPath="$PROJECT_DIR$/../style.css" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="34NQ601N66lyBKmCR8kUyMflsGG" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "android.gradle.sync.needed": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "main"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b69120a5-4ef1-414d-ac8a-b31dc4ad65f5" name="Changes" comment="" />
+      <created>1761051372095</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1761051372095</updated>
+    </task>
+    <servers />
+  </component>
+</project>
