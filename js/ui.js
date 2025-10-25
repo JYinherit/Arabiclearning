@@ -333,32 +333,38 @@ export function exitReviewMode() {
 
 window.showImportMessage = showImportMessage;
 
-// --- Random Test Modal ---
+export function openStatsModal(statsData) {
+    if (dom.statsModal && dom.statsModalBody) {
+        dom.statsModalBody.innerHTML = ''; // 清空旧内容
 
-export function openRandomTestModal() {
-    dom.randomTestModal.classList.add('visible');
-    document.addEventListener('keydown', handleRandomTestKeydown);
-}
+        statsData.forEach(categoryData => {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'stats-category';
 
-export function closeRandomTestModal() {
-    dom.randomTestModal.classList.remove('visible');
-    document.removeEventListener('keydown', handleRandomTestKeydown);
-    
-    // 将焦点返回到触发按钮
-    if (dom.startRandomTestBtn) {
-        dom.startRandomTestBtn.focus();
+            const categoryTitle = document.createElement('h3');
+            categoryTitle.textContent = categoryData.category;
+            categoryDiv.appendChild(categoryTitle);
+
+            const statsList = document.createElement('ul');
+            statsList.className = 'stats-list';
+
+            categoryData.stats.forEach(stat => {
+                const listItem = document.createElement('li');
+                listItem.className = 'stats-item';
+                listItem.innerHTML = `<span class="stats-label">${stat.label}:</span> <span class="stats-value">${stat.value}</span>`;
+                statsList.appendChild(listItem);
+            });
+
+            categoryDiv.appendChild(statsList);
+            dom.statsModalBody.appendChild(categoryDiv);
+        });
+
+        dom.statsModal.classList.add('visible');
     }
 }
 
-function handleRandomTestKeydown(event) {
-    if (event.key === 'Escape') {
-        closeRandomTestModal();
+export function closeStatsModal() {
+    if (dom.statsModal) {
+        dom.statsModal.classList.remove('visible');
     }
 }
-
-// Close random test modal when clicking outside of it
-window.addEventListener('click', (event) => {
-    if (event.target === dom.randomTestModal) {
-        closeRandomTestModal();
-    }
-});

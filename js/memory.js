@@ -349,19 +349,22 @@ export class ReviewScheduler {
         throw new Error(`无效的评分: ${rating}. 请使用 RATING.FORGOT(1), RATING.HARD(2), RATING.EASY(3)`);
     }
     
+    const isNewCard = !word.lastReview || word.stage === 0;
+
     try {
         // 在处理前确保单词结构完整
         this.fsrs.ensureCardStructure(word);
         
-        const result = this.fsrs.updateCard(word, rating);
-        console.log('FSRS处理成功:', result.chinese);
-        return result;
+        const updatedCard = this.fsrs.updateCard(word, rating);
+        console.log('FSRS处理成功:', updatedCard.chinese);
+        return { card: updatedCard, isNewCard };
     } catch (error) {
         console.error('FSRS处理失败，单词:', word.chinese, '错误:', error);
         console.log('单词当前状态:', word);
         
         // 紧急恢复：使用简单算法
-        return this.fallbackReview(word, rating);
+        const fallbackCard = this.fallbackReview(word, rating);
+        return { card: fallbackCard, isNewCard };
     }
   }
 

@@ -29,9 +29,11 @@
                     </div>
                     
                     <!-- 闪卡内容将由JavaScript动态组织 -->
-                    <h2 id="word-display"></h2>
-                    <div id="answer-display" class="spoiler" title="点击显示/隐藏答案"></div>
-                    <p id="explanation-display" class="spoiler"></p>
+                    <div class="flashcard">
+                        <h2 id="word-display"></h2>
+                        <div id="answer-display" class="spoiler" title="点击显示/隐藏答案"></div>
+                        <p id="explanation-display" class="spoiler"></p>
+                    </div>
 
                     <!-- 控制按钮 -->
                     <div id="controls">
@@ -67,15 +69,6 @@
                 <div id="start-screen">
                     <div id="deck-selection-container"></div>
 
-                    <!-- 随机测试区域 -->
-                    <div id="random-test-section" class="feature-section">
-                        <h3>随机测试</h3>
-                        <p>从指定词库中选择随机单词进行测试。</p>
-                        <button id="start-random-test-btn" class="btn feature-btn">
-                            🚀 配置随机测试
-                        </button>
-                    </div>
-
                     <!-- 规律学习区域 -->
                     <div id="regular-study-section" class="feature-section">
                         <h3>规律学习</h3>
@@ -97,7 +90,18 @@
                             <details>
                                 <summary>查看格式要求</summary>
                                 <div class="format-example">
-                                    <!-- 格式说明内容保持不变 -->
+{"第二课：你好": [
+    {
+        "chinese": "谁 (疑问代词)",
+        "arabic": "مَنْ",
+        "explanation": "مَنْ هُوَ？ (他是谁？)"
+    },
+    {
+        "chinese": "你 (阳性)",
+        "arabic": "أَنْتَ",
+        "explanation": "أَنْتَ طَالِبٌ. (你是一个男学生。)"
+    },...}
+]}}
                                 </div>
                             </details>
                         </div>
@@ -183,6 +187,15 @@
     <!-- 模态框保持不变 -->
     <div id="random-test-modal" class="modal">
         <!-- 内容保持不变 -->
+    </div>
+
+    <!-- 统计信息模态框 -->
+    <div id="stats-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="stats-modal-title">学习统计</h2>
+            <div id="stats-modal-body"></div>
+            <button id="stats-modal-close-btn" class="btn">关闭</button>
+        </div>
     </div>
 
     <script src="js/update.js"></script>

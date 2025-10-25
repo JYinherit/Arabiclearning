@@ -3,7 +3,6 @@ import * as ui from './ui.js';
 import * as storage from './storage.js';
 import * as stats from './stats.js';
 import { handleFileImport } from './parser.js';
-import { setupRandomTest } from './random.js';
 import ReviewScheduler, { RATING } from './memory.js'; // 导入新的记忆系统
 import { setupRegularStudy } from './regularStudy.js';
 
@@ -35,15 +34,12 @@ let sessionState = {
 // 新的记忆调度器
 const scheduler = new ReviewScheduler();
 
-// Random Test Module Interface
-let randomTestModule = null;
-
 // Regular Study Module Interface
 let regularStudyModule = null;
 
 // --- Core Logic ---
 
-function initialize(vocabulary, isRandomTest = false) {
+function initialize(vocabulary) {
   console.log('初始化单词列表，数量:', vocabulary.length);
   
   // 深度克隆词汇表，避免引用问题
@@ -61,17 +57,8 @@ function initialize(vocabulary, isRandomTest = false) {
   
   historyStack = [];
   currentWord = null;
-
-  if (isRandomTest) {
-    console.log('随机测试模式：初始化会话队列');
-    sessionLearnedCount.clear();
-    sessionWordsState.clear();
-    sessionQueue = [...activeWords];
-    currentSessionTotal = sessionQueue.length;
-    ui.updateProgressBar(0, currentSessionTotal);
-  } else {
-    console.log('普通模式：会话队列将在 startSession 中初始化');
-  }
+  
+  console.log('普通模式：会话队列将在 startSession 中初始化');
   
   console.log('初始化完成，有效单词:', activeWords.length);
 }
@@ -146,7 +133,12 @@ function resetSessionState() {
     isReviewingHistory = false;
 }
 
-function startSession(vocabulary, deckName, isRandomTest = false, isRegularStudy = false) {
+async function startSession(vocabulary, deckName, isRegularStudy = false) {
+    console.log('开始新会话:', deckName);
+    
+    // 只是标记会话开始，不增加计数
+    await stats.onSessionStart();
+
     console.log('开始会话:', deckName, '单词数量:', vocabulary.length);
     
     // 验证输入词汇表 - 使用更宽松的验证
@@ -168,11 +160,11 @@ function startSession(vocabulary, deckName, isRandomTest = false, isRegularStudy
     }
     
     // 使用验证后的单词列表
-    initialize(validWords, isRandomTest);
+    initialize(validWords);
     currentDeckNameRef.value = deckName;
     
     // 检查是否有保存的会话状态
-    const savedState = storage.loadSessionState(deckName);
+    const savedState = await storage.loadSessionState(deckName);
     if (savedState && confirm('检测到未完成的会话，是否继续？')) {
         restoreSessionState(savedState);
     } else {
@@ -187,8 +179,6 @@ function startSession(vocabulary, deckName, isRandomTest = false, isRegularStudy
     switchToPage('study-page');
     ui.showScreen(dom.cardContainer);
     showNextWord();
-    
-    stats.incrementSessionCount();
 }
 
 // 新增函数：恢复会话状态
@@ -247,7 +237,7 @@ function initializeNewSession(vocabulary) {
     };
 }
 
-function showNextWord() {
+async function showNextWord() {
     console.log('=== 显示下一个单词调试 ===');
     debugSessionState();
     console.log('显示下一个单词，当前队列长度:', sessionQueue.length);
@@ -268,8 +258,8 @@ function showNextWord() {
         ui.updateProgressBar(currentSessionTotal, currentSessionTotal);
         
         // 会话结束，清除状态
-        storage.clearSessionState(currentDeckNameRef.value);
-        storage.saveProgress(currentDeckNameRef.value, activeWords);
+        await storage.clearSessionState(currentDeckNameRef.value);
+        await storage.saveProgress(currentDeckNameRef.value, activeWords);
         isSessionActiveRef.value = false;
         
         return;
@@ -291,135 +281,88 @@ function showNextWord() {
     updateAndSaveSessionState();
 }
 
-function handleEasy() {
+async function handleEasy() {
     if (!currentWord || isReviewingHistory) return;
+    console.log('处理简单评分:', currentWord.chinese);
 
-    if (!isSessionActiveRef.value) {
-        stats.incrementSessionCount();
-        isSessionActiveRef.value = true;
-    }
+    try {
+        const wasNew = !currentWord.firstLearnedDate; // 判断是否是新单词
 
-    const wordId = currentWord.chinese;
-    const currentCount = (sessionLearnedCount.get(wordId) || 0) + 1;
-    sessionLearnedCount.set(wordId, currentCount);
+        // 处理复习
+        currentWord = scheduler.processReview(currentWord, RATING.EASY);
 
-    // 修复：增强FSRS错误处理
-    const wordState = sessionWordsState.get(currentWord.chinese) || {};
-    if (!wordState.fsrsLocked) {
-        try {
-            currentWord = scheduler.processReview(currentWord, RATING.EASY);
-            wordState.fsrsLocked = true;
-            sessionWordsState.set(currentWord.chinese, wordState);
-            
-            // 更新统计信息
-            stats.trackWordLearnedToday(currentWord, sessionStartDate);
-            if (currentCount >= 3) {
-                stats.trackWordMastered(currentWord);
-            }
-        } catch (error) {
-            console.error('FSRS处理失败，使用备用逻辑:', error);
-            ui.showImportMessage('处理单词状态时出错，已使用备用逻辑', false);
-            
-            // 备用逻辑
-            currentWord.rememberedCount = (currentWord.rememberedCount || 0) + 1;
-            if (currentWord.rememberedCount >= 3) {
-                currentWord.stage = 4;
-                stats.trackWordMastered(currentWord);
-            }
-            wordState.fsrsLocked = true;
-            sessionWordsState.set(currentWord.chinese, wordState);
+        // 如果是新单词，记录学习统计
+        if (wasNew) {
+            await stats.trackWordLearnedToday(currentWord, sessionStartDate);
+            console.log('新单词学习记录已更新');
         }
-    }
 
-    if (currentCount < 3) {
-        // 重新插入队列，继续学习
-        const reinsertIndex = Math.min(sessionQueue.length, Math.floor(Math.random() * 3) + 1);
-        sessionQueue.splice(reinsertIndex, 0, currentWord);
-    } else {
-        // 单词学习完成
-        sessionState.completedCount = (sessionState.completedCount || 0) + 1;
+        // 更新完成计数
+        updateSessionProgress();
 
-        // 规律学习的新单词计数
-        if (regularStudyModule && regularStudyModule.isNewWord(currentWord)) {
-            regularStudyModule.incrementTodayLearned(currentDeckNameRef.value);
+        // 检查是否完成会话
+        if (isSessionComplete()) {
+            await completeSession();
+        } else {
+            await showNextWord();
         }
+
+    } catch (error) {
+        console.error('处理简单评分失败:', error);
+        ui.showImportMessage('操作失败，请重试', 'error');
     }
-    
-    updateAndSaveSessionState();
-    showNextWord();
 }
 
 // 对 handleHard 和 handleForgot 也做类似的错误处理增强
-function handleHard() {
+async function handleHard() {
     if (!currentWord || isReviewingHistory) return;
+    try {
+        const wasNew = !currentWord.firstLearnedDate;
 
-    if (!isSessionActiveRef.value) {
-        stats.incrementSessionCount();
-        isSessionActiveRef.value = true;
-    }
+        currentWord = scheduler.processReview(currentWord, RATING.HARD);
 
-    const wordState = sessionWordsState.get(currentWord.chinese) || {};
-    if (!wordState.fsrsLocked) {
-        try {
-            currentWord = scheduler.processReview(currentWord, RATING.HARD);
-            wordState.fsrsLocked = true;
-            sessionWordsState.set(currentWord.chinese, wordState);
-        } catch (error) {
-            console.error('FSRS处理失败，使用备用逻辑:', error);
-            // 备用逻辑：简单更新状态
-            currentWord.mistakeCount = (currentWord.mistakeCount || 0) + 1;
-            wordState.fsrsLocked = true;
-            sessionWordsState.set(currentWord.chinese, wordState);
+        if (wasNew) {
+            await stats.trackWordLearnedToday(currentWord, sessionStartDate);
         }
-    }
 
-    sessionLearnedCount.set(currentWord.chinese, 0);
-    
-    // 重新插入队列
-    const reinsertIndex = Math.min(sessionQueue.length, Math.floor(Math.random() * 4) + 2);
-    sessionQueue.splice(reinsertIndex, 0, currentWord);
-    
-    updateAndSaveSessionState();
-    showNextWord();
+        updateSessionProgress();
+
+        if (isSessionComplete()) {
+            await completeSession();
+        } else {
+            await showNextWord();
+        }
+    } catch (error) {
+        console.error('处理困难评分失败:', error);
+    }
 }
 
-function handleForgot() {
+async function handleForgot() {
     if (!currentWord || isReviewingHistory) return;
-    
-    if (!isSessionActiveRef.value) {
-        stats.incrementSessionCount();
-        isSessionActiveRef.value = true;
-    }
 
-    const wordState = sessionWordsState.get(currentWord.chinese) || {};
-    if (!wordState.fsrsLocked) {
-        try {
-            currentWord = scheduler.processReview(currentWord, RATING.FORGOT);
-            wordState.fsrsLocked = true;
-            sessionWordsState.set(currentWord.chinese, wordState);
-        } catch (error) {
-            console.error('FSRS处理失败，使用备用逻辑:', error);
-            // 备用逻辑：重置学习进度
-            currentWord.rememberedCount = 0;
-            currentWord.mistakeCount = (currentWord.mistakeCount || 0) + 1;
-            currentWord.stage = 1;
-            wordState.fsrsLocked = true;
-            sessionWordsState.set(currentWord.chinese, wordState);
+    try {
+        const wasNew = !currentWord.firstLearnedDate;
+
+        currentWord = scheduler.processReview(currentWord, RATING.FORGOT);
+
+        if (wasNew) {
+            await stats.trackWordLearnedToday(currentWord, sessionStartDate);
         }
+
+        updateSessionProgress();
+
+        if (isSessionComplete()) {
+            await completeSession();
+        } else {
+            await showNextWord();
+        }
+    } catch (error) {
+        console.error('处理忘记评分失败:', error);
     }
-
-    sessionLearnedCount.set(currentWord.chinese, 0);
-
-    // 重新插入队列（更靠前的位置）
-    const reinsertIndex = Math.min(sessionQueue.length, Math.floor(Math.random() * 2) + 1);
-    sessionQueue.splice(reinsertIndex, 0, currentWord);
-    
-    updateAndSaveSessionState();
-    showNextWord();
 }
 
 // 新增函数：更新并保存会话状态
-function updateAndSaveSessionState() {
+async function updateAndSaveSessionState() {
 
     const actualCompleted = Math.min(sessionState.completedCount || 0, currentSessionTotal);
     
@@ -431,7 +374,7 @@ function updateAndSaveSessionState() {
         completedCount: actualCompleted
     };
     
-    storage.saveProgress(currentDeckNameRef.value, activeWords, sessionState);
+    await storage.saveProgress(currentDeckNameRef.value, activeWords, sessionState);
    
     ui.updateProgressBar(actualCompleted, currentSessionTotal);
 
@@ -453,10 +396,10 @@ function handlePrev() {
 }
 
 // 修改 goBackToMenu 函数
-function goBackToMenu() {
+async function goBackToMenu() {
     // 保存当前进度
     if (isSessionActiveRef.value) {
-        updateAndSaveSessionState();
+        await updateAndSaveSessionState();
     }
     
     isSessionActiveRef.value = false;
@@ -502,8 +445,12 @@ function setupEventListeners() {
     // Data Management Button Listeners (在设置模态框内)
     if (dom.viewStatsBtn) {
         dom.viewStatsBtn.addEventListener('click', () => {
-            alert(stats.getStatsSummary(vocabularyDecks));
+            ui.openStatsModal(stats.getStatsSummary(vocabularyDecks));
         });
+    }
+
+    if (dom.statsModalCloseBtn) {
+        dom.statsModalCloseBtn.addEventListener('click', ui.closeStatsModal);
     }
     if (dom.exportBackupBtn) {
         dom.exportBackupBtn.addEventListener('click', storage.exportAllDataToFile);
@@ -527,7 +474,7 @@ function bindAnswerDisplayEvents() {
         answerDisplay.removeEventListener('click', ui.toggleAnswerVisibility);
         answerDisplay.addEventListener('click', ui.toggleAnswerVisibility);
     }
-    
+
     if (explanationDisplay) {
         explanationDisplay.removeEventListener('click', ui.toggleExplanationVisibility);
         explanationDisplay.addEventListener('click', ui.toggleExplanationVisibility);
@@ -707,10 +654,53 @@ function initializeStudyPageStructure() {
     setupEventListeners();
 }
 
+// 在会话真正完成时才增加计数
+async function completeSession() {
+    console.log('完成会话');
+    
+    // 增加会话计数
+    await stats.onSessionComplete();
+    
+    // 显示完成信息
+    showSessionCompleteDialog();
+}
+
+// 检查会话是否完成
+function isSessionComplete() {
+    if (!sessionState) return false;
+    return sessionState.completedCount >= sessionState.currentSessionTotal;
+}
+
+// 更新会话进度
+function updateSessionProgress() {
+    if (sessionState) {
+        sessionState.completedCount++;
+        console.log(`会话进度: ${sessionState.completedCount}/${sessionState.currentSessionTotal}`);
+    }
+}
+
+// 显示会话完成对话框
+function showSessionCompleteDialog() {
+    const todayProgress = stats.getTodayProgress();
+    
+    alert(`
+🎉 会话完成！
+
+本次学习: ${sessionState.completedCount} 个单词
+今日进度: ${todayProgress.current}/${todayProgress.goal} (${todayProgress.percentage}%)
+连续学习: ${stats.learningStats.streakDays} 天
+
+继续加油！💪
+    `);
+}
+
 // --- Initial Load ---
 
-window.onload = () => {
+window.onload = async () => {
     console.log('应用启动...');
+
+    // 初始化存储系统
+    await storage.initializeStorage();
     
     // 验证DOM元素
     dom.validateDOMElements();
@@ -722,8 +712,8 @@ window.onload = () => {
         initializeStudyPageStructure();
     }
     
-    storage.loadDecksFromStorage(vocabularyDecks);
-    stats.loadStats();
+    await storage.loadDecksFromStorage(vocabularyDecks);
+    await stats.loadStats();
     ui.setupSelectionScreen(vocabularyDecks, startSession);
     ui.showScreen(dom.startScreen);
     setupEventListeners();
@@ -734,18 +724,6 @@ window.onload = () => {
     // 迁移数据（如果需要）
     migrateDataIfNeeded();
 
-    // 初始化随机测试模块
-    randomTestModule = setupRandomTest({
-        vocabularyDecks,
-        initialize,
-        currentModeRef,
-        currentDeckNameRef,
-        isSessionActive: isSessionActiveRef, // 添加会话状态引用
-        cardContainer: dom.cardContainer,
-        showScreen: ui.showScreen,
-        showNextWord,
-        incrementSessionCount: stats.incrementSessionCount,
-    });
     // 初始化规律学习功能
     regularStudyModule = setupRegularStudy({
         vocabularyDecks,
