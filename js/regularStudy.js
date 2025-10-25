@@ -200,6 +200,8 @@ export class RegularStudy {
 
     getDeckProgressStats(deckName) {
         const words = this.vocabularyDecks[deckName];
+        if (!words || words.length === 0) return '无单词';
+        
         const dueWords = this.scheduler.getDueWords(words);
         const newWords = words.filter(word => 
             !word.reviews || word.reviews.length === 0 || 
@@ -372,8 +374,16 @@ beginStudySession(selectedDeck, studyQueue) {
         return;
     }
     
-    // 使用依赖的 startSession 函数，传入规律学习标志
-    this.startSession(studyQueue, selectedDeck.name, false, true); // 第四个参数表示规律学习模式
+    // 确保会话状态重置
+    if (this.dependencies.isSessionActive) {
+        this.dependencies.isSessionActive.value = false;
+    }
+    
+    // 直接调用 startSession，不传入规律学习标志
+    this.startSession(studyQueue, selectedDeck.name);
+    
+    // 切换到学习页面
+    this.dependencies.updateNavigationState('study-page');
 }
 }
 

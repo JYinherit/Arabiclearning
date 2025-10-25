@@ -78,21 +78,36 @@ function initialize(vocabulary, isRandomTest = false) {
 
 
 // 新增函数：重置会话状态
-// 在 main.js 中添加单词验证函数
 function validateWord(word) {
     if (!word) return false;
     
-    const required = ['chinese', 'arabic', 'reviews', 'rememberedCount', 'stage'];
-    const missing = required.filter(field => word[field] === undefined || word[field] === null);
+    // 基础字段验证
+    const required = ['chinese', 'arabic'];
+    const missing = required.filter(field => !word[field]);
     
     if (missing.length > 0) {
-        console.error(`单词验证失败: ${word.chinese}, 缺失字段:`, missing);
+        console.error(`单词验证失败: ${word.chinese}, 缺失基础字段:`, missing);
         return false;
     }
     
+    // 确保学习相关字段存在，如果不存在则修复
+    const learningFields = {
+        reviews: [],
+        rememberedCount: 0,
+        stage: 0
+    };
+    
+    for (const [field, defaultValue] of Object.entries(learningFields)) {
+        if (word[field] === undefined || word[field] === null) {
+            console.warn(`单词 ${word.chinese} 缺少字段 ${field}，已修复为默认值:`, defaultValue);
+            word[field] = defaultValue;
+        }
+    }
+    
+    // 特别确保 reviews 是一个数组
     if (!Array.isArray(word.reviews)) {
-        console.error(`单词验证失败: ${word.chinese}, reviews 不是数组`);
-        return false;
+        console.warn(`单词 ${word.chinese} 的 reviews 字段不是数组，已修复`);
+        word.reviews = [];
     }
     
     return true;
@@ -131,18 +146,49 @@ function resetSessionState() {
     isReviewingHistory = false;
 }
 
-// 修改 startSession 函数
 function startSession(vocabulary, deckName, isRandomTest = false, isRegularStudy = false) {
     console.log('开始会话:', deckName, '单词数量:', vocabulary.length);
     
-    // 验证输入词汇表
-    const invalidWords = vocabulary.filter(word => !validateWord(word));
-    if (invalidWords.length > 0) {
-        console.warn(`发现 ${invalidWords.length} 个无效单词，尝试修复`);
-        vocabulary = vocabulary.map(word => validateWord(word) ? word : scheduler.initializeWord(word));
+    // 验证输入词汇表 - 使用更宽松的验证
+    const validWords = vocabulary.filter(word => {
+        if (!word || !word.chinese || !word.arabic) {
+            console.warn('跳过无效单词:', word);
+            return false;
+        }
+        return true;
+    });
+    
+    if (validWords.length === 0) {
+        alert('所选词库中没有有效的单词！');
+        return;
     }
     
-    // ... 其余现有代码
+    if (validWords.length < vocabulary.length) {
+        console.warn(`跳过了 ${vocabulary.length - validWords.length} 个无效单词`);
+    }
+    
+    // 使用验证后的单词列表
+    initialize(validWords, isRandomTest);
+    currentDeckNameRef.value = deckName;
+    
+    // 检查是否有保存的会话状态
+    const savedState = storage.loadSessionState(deckName);
+    if (savedState && confirm('检测到未完成的会话，是否继续？')) {
+        restoreSessionState(savedState);
+    } else {
+        // 初始化新会话
+        initializeNewSession(validWords);
+    }
+    
+    sessionStartDate = new Date().toDateString();
+    isSessionActiveRef.value = true;
+    
+    // 切换到学习页面
+    switchToPage('study-page');
+    ui.showScreen(dom.cardContainer);
+    showNextWord();
+    
+    stats.incrementSessionCount();
 }
 
 // 新增函数：恢复会话状态
@@ -705,9 +751,14 @@ window.onload = () => {
         vocabularyDecks,
         currentDeckNameRef,
         currentModeRef,
-        isSessionActive: isSessionActiveRef, // 添加会话状态引用
+        isSessionActive: isSessionActiveRef,
         scheduler,
-        startSession: (vocabulary, deckName) => startSession(vocabulary, deckName, false, true), // 包装函数，传入规律学习标志
+        startSession: (vocabulary, deckName) => {
+            // 重置会话状态
+            resetSessionState();
+            // 启动会话
+            startSession(vocabulary, deckName, false, false);
+        },
         showScreen: ui.showScreen,
         cardContainer: dom.cardContainer,
         showNextWord,

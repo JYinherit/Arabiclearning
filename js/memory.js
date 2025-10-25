@@ -246,6 +246,13 @@ export class FSRSAlgorithm {
   }
 
   /**
+   * 获取需要复习的卡片 (兼容性方法)
+   */
+  getDueCards(words, currentTime = Date.now()) {
+    return words.filter(word => this.isCardDue(word, currentTime));
+  }
+
+  /**
    * 添加确保卡片结构完整的方法
    */
   ensureCardStructure(card) {
@@ -375,15 +382,15 @@ export class ReviewScheduler {
         if (word.rememberedCount >= 3) {
             word.stage = 4; // 已掌握
             word.difficulty = 1;
-            word.stability = 365; // 一年
+            word.stability = 30; // 一月
         } else if (word.rememberedCount >= 2) {
             word.stage = 3; // 长期记忆
             word.difficulty = 2;
-            word.stability = 30; // 一个月
+            word.stability = 7; // 一周
         } else {
             word.stage = 2; // 中期记忆
             word.difficulty = 3;
-            word.stability = 7; // 一周
+            word.stability = 3; // 三天
         }
     } else if (rating === RATING.HARD) {
         word.rememberedCount = Math.max(0, (word.rememberedCount || 0) - 0.5);
@@ -420,10 +427,24 @@ export class ReviewScheduler {
   }
 
   /**
-   * 获取需要复习的单词
+   * 获取需要复习的卡片
+   */
+  getDueCards(words, currentTime = Date.now()) {
+    // 直接实现，不调用 fsrs.getDueCards
+    return words.filter(word => {
+        // 确保单词结构完整
+        this.fsrs.ensureCardStructure(word);
+        
+        // 使用 fsrs 的 isCardDue 方法检查
+        return this.fsrs.isCardDue(word, currentTime);
+    });
+  }
+
+  /**
+   * 获取需要复习的单词 (兼容性方法)
    */
   getDueWords(words, currentTime = Date.now()) {
-    return this.fsrs.getDueCards(words, currentTime);
+    return this.getDueCards(words, currentTime);
   }
 
   /**
@@ -433,6 +454,7 @@ export class ReviewScheduler {
     const dueWords = this.getDueWords(words);
     const totalWords = words.length;
     const dueCount = dueWords.length;
+    
     // 修复：将已学习定义为记得三次或以上
     const learnedCount = words.filter(w => w.rememberedCount >= 3).length;
     const masteredCount = words.filter(w => w.stage >= 4).length;
