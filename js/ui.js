@@ -63,94 +63,20 @@ export function displayCard(word, currentMode) {
         console.error('没有单词数据');
         return;
     }
-    
-    // 确保有闪卡容器
-    let flashcardContainer = document.querySelector('.flashcard');
-    if (!flashcardContainer) {
-        console.log('创建新的闪卡容器');
-        
-        // 创建闪卡容器
-        flashcardContainer = document.createElement('div');
-        flashcardContainer.className = 'flashcard';
-        
-        // 重新组织DOM结构 - 添加安全检查
-        const cardContainer = dom.cardContainer;
-        const progressContainer = dom.progressContainer || document.getElementById('progress-container');
-        const wordDisplay = dom.wordDisplay || document.getElementById('word-display');
-        const answerDisplay = dom.answerDisplay || document.getElementById('answer-display');
-        const explanationDisplay = dom.explanationDisplay || document.getElementById('explanation-display');
-        
-        // 获取控制按钮容器 - 添加更可靠的获取方式
-        let controls = dom.forgotBtn?.parentElement;
-        if (!controls) {
-            controls = document.querySelector('#controls');
-        }
-        
-        let navControls = dom.prevBtn?.parentElement;
-        if (!navControls) {
-            navControls = document.querySelector('#nav-controls');
-        }
-        
-        // 验证所有必需的DOM元素都存在
-        if (!cardContainer || !progressContainer || !wordDisplay || !answerDisplay || !explanationDisplay || !controls || !navControls) {
-            console.error('缺少必需的DOM元素:', {
-                cardContainer: !!cardContainer,
-                progressContainer: !!progressContainer,
-                wordDisplay: !!wordDisplay,
-                answerDisplay: !!answerDisplay,
-                explanationDisplay: !!explanationDisplay,
-                controls: !!controls,
-                navControls: !!navControls
-            });
-            return;
-        }
-        
-        // 清空卡片容器并重新组织结构
-        cardContainer.innerHTML = '';
-        
-        // 安全地添加子元素
-        try {
-            cardContainer.appendChild(progressContainer);
-            cardContainer.appendChild(flashcardContainer);
-            flashcardContainer.appendChild(wordDisplay);
-            flashcardContainer.appendChild(answerDisplay);
-            flashcardContainer.appendChild(explanationDisplay);
-            cardContainer.appendChild(controls);
-            cardContainer.appendChild(navControls);
-        } catch (error) {
-            console.error('DOM操作失败:', error);
-            // 备用方案：使用innerHTML直接设置结构
-            cardContainer.innerHTML = `
-                <div id="progress-container">
-                    <div id="progress-bar">0%</div>
-                </div>
-                <div class="flashcard">
-                    <h2 id="word-display"></h2>
-                    <div id="answer-display" class="spoiler" title="点击显示/隐藏答案"></div>
-                    <p id="explanation-display" class="spoiler"></p>
-                </div>
-                <div id="controls">
-                    <button id="forgot-btn" class="btn"><i class="fas fa-times"></i> 忘记</button>
-                    <button id="hard-btn" class="btn"><i class="fas fa-question"></i> 模糊</button> 
-                    <button id="easy-btn" class="btn"><i class="fas fa-check"></i> 记得</button> 
-                    <button id="next-word-in-history-btn" class="btn" style="display: none;">下一个词</button>
-                </div>
-                <div id="nav-controls">
-                    <button id="prev-btn" class="btn">上一个词</button>
-                    <button id="back-to-menu-btn" class="btn">返回</button>
-                </div>
-            `;
-            
-            // 重新获取DOM引用
-            flashcardContainer = document.querySelector('.flashcard');
-        }
+
+    const flashcardContainer = document.querySelector('.flashcard');
+    const wordElement = dom.wordDisplay;
+    const answerElement = dom.answerDisplay;
+    const explanationElement = dom.explanationDisplay;
+
+    // 验证核心元素是否存在
+    if (!flashcardContainer || !wordElement || !answerElement || !explanationElement) {
+        console.error('显示卡片失败：一个或多个核心DOM元素未找到。');
+        return;
     }
 
     // 设置解释文本
-    const explanationElement = dom.explanationDisplay || document.getElementById('explanation-display');
-    if (explanationElement) {
-        explanationElement.textContent = `💡 解释: ${word.explanation}`;
-    }
+    explanationElement.textContent = `💡 解释: ${word.explanation}`;
 
     let showChinese = true;
 
@@ -160,68 +86,48 @@ export function displayCard(word, currentMode) {
         showChinese = false;
     }
 
-    // 获取显示元素
-    const wordElement = dom.wordDisplay || document.getElementById('word-display');
-    const answerElement = dom.answerDisplay || document.getElementById('answer-display');
-
     if (showChinese) {
         // 显示中文，背阿拉伯语
-        if (wordElement) {
-            wordElement.textContent = word.chinese;
-            wordElement.style.direction = 'ltr';
-            wordElement.style.fontSize = '2.2rem';
-            wordElement.style.fontWeight = 'bold';
-        }
+        wordElement.textContent = word.chinese;
+        wordElement.style.direction = 'ltr';
+        wordElement.style.fontSize = '2.2rem';
+        wordElement.style.fontWeight = 'bold';
         
-        if (answerElement) {
-            answerElement.innerHTML = word.arabic.replace(/\n/g, '<br>');
-            answerElement.style.direction = 'rtl';
-            answerElement.style.fontSize = '2rem';
-            answerElement.style.fontWeight = '600';
-        }
+        answerElement.innerHTML = word.arabic.replace(/\n/g, '<br>');
+        answerElement.style.direction = 'rtl';
+        answerElement.style.fontSize = '2rem';
+        answerElement.style.fontWeight = '600';
     } else {
         // 显示阿拉伯语，背中文
-        if (wordElement) {
-            wordElement.innerHTML = word.arabic.replace(/\n/g, '<br>');
-            wordElement.style.direction = 'rtl';
-            wordElement.style.fontSize = '2rem';
-            wordElement.style.fontWeight = '600';
-        }
+        wordElement.innerHTML = word.arabic.replace(/\n/g, '<br>');
+        wordElement.style.direction = 'rtl';
+        wordElement.style.fontSize = '2rem';
+        wordElement.style.fontWeight = '600';
         
-        if (answerElement) {
-            answerElement.textContent = word.chinese;
-            answerElement.style.direction = 'ltr';
-            answerElement.style.fontSize = '2.2rem';
-            answerElement.style.fontWeight = 'bold';
-        }
+        answerElement.textContent = word.chinese;
+        answerElement.style.direction = 'ltr';
+        answerElement.style.fontSize = '2.2rem';
+        answerElement.style.fontWeight = 'bold';
     }
 
     // 解释文本样式
-    if (explanationElement) {
-        explanationElement.style.fontSize = '1.4rem';
-        explanationElement.style.color = '#e65100';
-        explanationElement.style.fontWeight = '500';
-    }
+    explanationElement.style.fontSize = '1.4rem';
+    explanationElement.style.color = '#e65100';
+    explanationElement.style.fontWeight = '500';
 
     // 重置遮挡状态
-    if (answerElement) {
-        answerElement.classList.remove('revealed');
-        answerElement.classList.add('spoiler');
-    }
-    if (explanationElement) {
-        explanationElement.classList.remove('revealed');
-        explanationElement.classList.add('spoiler');
-    }
+    answerElement.classList.remove('revealed');
+    answerElement.classList.add('spoiler');
+    explanationElement.classList.remove('revealed');
+    explanationElement.classList.add('spoiler');
     
     // 添加动画效果
-    if (flashcardContainer) {
-        flashcardContainer.style.animation = 'cardAppear 0.5s ease-out';
-        
-        // 移除动画，以便下次可以重新触发
-        setTimeout(() => {
-            flashcardContainer.style.animation = '';
-        }, 500);
-    }
+    flashcardContainer.style.animation = 'cardAppear 0.5s ease-out';
+    
+    // 移除动画，以便下次可以重新触发
+    setTimeout(() => {
+        flashcardContainer.style.animation = '';
+    }, 500);
 }
 
 export function setupSelectionScreen(vocabularyDecks, startSessionCallback) {
@@ -236,7 +142,7 @@ export function setupSelectionScreen(vocabularyDecks, startSessionCallback) {
         }
         button.addEventListener('click', () => {
             console.log('Deck button clicked:', deckName);
-            startSessionCallback(vocabularyDecks[deckName], deckName);
+            startSessionCallback(vocabularyDecks[deckName], deckName, false);
         });
         dom.deckSelectionContainer.appendChild(button);
     });

@@ -366,27 +366,50 @@ showStudyOverview(selectedDeck, studyQueue) {
     }
     
 // 修改 beginStudySession 方法
-beginStudySession(selectedDeck, studyQueue) {
-    console.log('开始规律学习会话:', selectedDeck.name, '队列长度:', studyQueue.length);
-    
-    if (studyQueue.length === 0) {
-        alert('今天没有需要学习的单词！\n\n所有单词都已掌握或达到今日学习上限。');
-        return;
+    beginStudySession(selectedDeck, studyQueue) {
+        console.log('开始规律学习会话:', selectedDeck.name, '队列长度:', studyQueue.length);
+        
+        if (studyQueue.length === 0) {
+            alert('今天没有需要学习的单词！\n\n所有单词都已掌握或达到今日学习上限。');
+            return;
+        }
+        
+        // 确保会话状态重置
+        if (this.dependencies.isSessionActive) {
+            this.dependencies.isSessionActive.value = false;
+        }
+        
+        // 直接调用 startSession，不传入规律学习标志
+        this.startSession(studyQueue, selectedDeck.name);
+        
+        // 切换到学习页面
+        this.dependencies.updateNavigationState('study-page');
     }
-    
-    // 确保会话状态重置
-    if (this.dependencies.isSessionActive) {
-        this.dependencies.isSessionActive.value = false;
-    }
-    
-    // 直接调用 startSession，不传入规律学习标志
-    this.startSession(studyQueue, selectedDeck.name);
-    
-    // 切换到学习页面
-    this.dependencies.updateNavigationState('study-page');
-}
-}
 
+    async startRegularStudyWithDeckName(deckName) {
+        if (!this.vocabularyDecks[deckName]) {
+            console.error(`词库 "${deckName}" 未找到，无法开始规律学习。`);
+            return false; // 返回false表示失败
+        }
+
+        const selectedDeck = {
+            name: deckName,
+            words: this.vocabularyDecks[deckName]
+        };
+
+        this.currentDeckNameRef.value = selectedDeck.name;
+        
+        const studyQueue = await this.prepareStudyQueue(selectedDeck);
+        
+        if (studyQueue.length === 0) {
+            console.log(`词库 "${deckName}" 今日无学习内容。`);
+            return false; // 返回false表示没有可学内容
+        }
+
+        this.beginStudySession(selectedDeck, studyQueue);
+        return true; // 返回true表示成功
+    }
+}
 // 导出初始化函数
 export function setupRegularStudy(dependencies) {
     return new RegularStudy(dependencies);

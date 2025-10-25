@@ -35,11 +35,14 @@ body {
 }
 
 .page-header {
-    background-color: #2d3748; 
+    background-color: #2d3748;
     color: white;
-    padding: 1.5rem 1rem; 
+    padding: 1.2rem 1rem; /* 稍微减少垂直内边距 */
     text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    max-width: 90%; /* 设置最大宽度 */
+    margin: 1.5rem auto; /* 自动外边距实现居中 */
+    border-radius: 12px; /* 添加圆角 */
 }
 
 .page-content {
@@ -261,7 +264,7 @@ body {
     max-width: 500px;
     background: #e0e6ed;
     border-radius: 10px;
-    margin-bottom: 2rem;
+    margin: 0 auto 2rem; /* 修改外边距以实现水平居中 */
     overflow: hidden;
     box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
 }
@@ -410,13 +413,11 @@ body {
     flex-wrap: wrap;
     margin: 2rem 0;
     width: 100%;
-    max-width: 500px;
+    max-width: 565.33px;
 }
 
 #controls .btn {
-    flex: 1;
-    min-width: 100px;
-    max-width: 140px;
+    flex: 1; /* 允许按钮拉伸以填充容器 */
     padding: 1.2rem 0.5rem;
     font-size: 1.1rem;
     font-weight: bold;

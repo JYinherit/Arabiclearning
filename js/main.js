@@ -16,6 +16,7 @@ const currentModeRef = { value: storage.getSetting('mode', 'zh-ar') }; // 使用
 let isReviewingHistory = false;
 let sessionStartDate = null;
 const isSessionActiveRef = { value: false };
+let isFsrsEnabled = false; // 新增：用于跟踪FSRS是否启用
 
 // --- Session Management ---
 let sessionQueue = []; // 当前学习会话的单词队列
@@ -133,8 +134,9 @@ function resetSessionState() {
     isReviewingHistory = false;
 }
 
-async function startSession(vocabulary, deckName, isRegularStudy = false) {
-    console.log('开始新会话:', deckName);
+async function startSession(vocabulary, deckName, enableFsrs = false) {
+    console.log(`开始新会话: ${deckName}, FSRS启用: ${enableFsrs}`);
+    isFsrsEnabled = enableFsrs; // 设置FSRS状态
     
     // 只是标记会话开始，不增加计数
     await stats.onSessionStart();
@@ -283,24 +285,35 @@ async function showNextWord() {
 
 async function handleEasy() {
     if (!currentWord || isReviewingHistory) return;
-    console.log('处理简单评分:', currentWord.chinese);
 
     try {
-        const wasNew = !currentWord.firstLearnedDate; // 判断是否是新单词
+        if (isFsrsEnabled) {
+            // FSRS模式：区分“首次记得”和“确认记得”
+            const pendingState = sessionWordsState.get(currentWord);
 
-        // 处理复习
-        currentWord = scheduler.processReview(currentWord, RATING.EASY);
+            if (pendingState?.isPending) {
+                // “确认记得”：单词之前被标记为“忘记”或“模糊”
+                if (pendingState.wasNew) {
+                    await stats.trackWordLearnedToday(currentWord, sessionStartDate);
+                    console.log('新单词学习记录已更新（来自待定状态）');
+                }
+                sessionWordsState.delete(currentWord);
 
-        // 如果是新单词，记录学习统计
-        if (wasNew) {
-            await stats.trackWordLearnedToday(currentWord, sessionStartDate);
-            console.log('新单词学习记录已更新');
+            } else {
+                // “首次记得”：正常处理
+                const { card: updatedWord, isNewCard } = scheduler.processReview(currentWord, RATING.EASY);
+                currentWord = updatedWord;
+
+                if (isNewCard) {
+                    await stats.trackWordLearnedToday(currentWord, sessionStartDate);
+                    console.log('新单词学习记录已更新');
+                }
+            }
         }
-
-        // 更新完成计数
+        
+        // 两种模式下，点击“记得”都意味着当前单词在本次会话中完成
         updateSessionProgress();
 
-        // 检查是否完成会话
         if (isSessionComplete()) {
             await completeSession();
         } else {
@@ -317,21 +330,18 @@ async function handleEasy() {
 async function handleHard() {
     if (!currentWord || isReviewingHistory) return;
     try {
-        const wasNew = !currentWord.firstLearnedDate;
-
-        currentWord = scheduler.processReview(currentWord, RATING.HARD);
-
-        if (wasNew) {
-            await stats.trackWordLearnedToday(currentWord, sessionStartDate);
+        if (isFsrsEnabled) {
+            // FSRS模式：更新FSRS状态，并标记为待定
+            const { card: updatedWord, isNewCard } = scheduler.processReview(currentWord, RATING.HARD);
+            currentWord = updatedWord;
+            sessionWordsState.set(currentWord, { isPending: true, wasNew: isNewCard });
         }
+        
+        // 两种模式下，（被标记为模糊的）单词都将被添加回队列末尾
+        sessionQueue.push(currentWord);
 
-        updateSessionProgress();
-
-        if (isSessionComplete()) {
-            await completeSession();
-        } else {
-            await showNextWord();
-        }
+        // 显示下一个单词（内部会保存会话状态）
+        await showNextWord();
     } catch (error) {
         console.error('处理困难评分失败:', error);
     }
@@ -341,21 +351,18 @@ async function handleForgot() {
     if (!currentWord || isReviewingHistory) return;
 
     try {
-        const wasNew = !currentWord.firstLearnedDate;
-
-        currentWord = scheduler.processReview(currentWord, RATING.FORGOT);
-
-        if (wasNew) {
-            await stats.trackWordLearnedToday(currentWord, sessionStartDate);
+        if (isFsrsEnabled) {
+            // FSRS模式：更新FSRS状态，并标记为待定
+            const { card: updatedWord, isNewCard } = scheduler.processReview(currentWord, RATING.FORGOT);
+            currentWord = updatedWord;
+            sessionWordsState.set(currentWord, { isPending: true, wasNew: isNewCard });
         }
+        
+        // 两种模式下，（被标记为忘记的）单词都将被添加回队列末尾
+        sessionQueue.push(currentWord);
 
-        updateSessionProgress();
-
-        if (isSessionComplete()) {
-            await completeSession();
-        } else {
-            await showNextWord();
-        }
+        // 显示下一个单词（内部会保存会话状态）
+        await showNextWord();
     } catch (error) {
         console.error('处理忘记评分失败:', error);
     }
@@ -654,15 +661,49 @@ function initializeStudyPageStructure() {
     setupEventListeners();
 }
 
+// 新增：尝试开始下一个规律学习词库
+async function tryNextRegularStudyDeck(startIndex) {
+    const deckNames = Object.keys(vocabularyDecks);
+    for (let i = startIndex; i < deckNames.length; i++) {
+        const nextDeckName = deckNames[i];
+        console.log(`尝试自动切换到下一个词库: ${nextDeckName}`);
+        const success = await regularStudyModule.startRegularStudyWithDeckName(nextDeckName);
+        if (success) {
+            // 成功开始新会话，中断循环
+            return;
+        }
+        // 如果不成功（例如，没有可学内容），循环将继续尝试下一个词库
+    }
+
+    // 如果循环完成，说明所有剩余词库都已检查且无学习内容
+    alert("🎉 恭喜！所有词库的今日学习任务均已完成！");
+    goBackToMenu();
+}
+
 // 在会话真正完成时才增加计数
 async function completeSession() {
     console.log('完成会话');
     
     // 增加会话计数
     await stats.onSessionComplete();
-    
-    // 显示完成信息
-    showSessionCompleteDialog();
+
+    if (isFsrsEnabled) {
+        console.log('规律学习模式会话完成，尝试切换到下一个词库...');
+        const deckNames = Object.keys(vocabularyDecks);
+        const currentIndex = deckNames.indexOf(currentDeckNameRef.value);
+
+        if (currentIndex > -1 && currentIndex < deckNames.length - 1) {
+            // 从下一个词库开始尝试
+            await tryNextRegularStudyDeck(currentIndex + 1);
+        } else {
+            // 当前是最后一个词库，或未找到索引
+            alert("🎉 恭喜！所有词库的今日学习任务均已完成！");
+            goBackToMenu();
+        }
+    } else {
+        // 非FSRS模式，只显示普通完成信息
+        showSessionCompleteDialog();
+    }
 }
 
 // 检查会话是否完成
@@ -734,8 +775,8 @@ window.onload = async () => {
         startSession: (vocabulary, deckName) => {
             // 重置会话状态
             resetSessionState();
-            // 启动会话
-            startSession(vocabulary, deckName, false, false);
+            // 启动会话，并启用FSRS
+            startSession(vocabulary, deckName, true);
         },
         showScreen: ui.showScreen,
         cardContainer: dom.cardContainer,
@@ -743,4 +784,14 @@ window.onload = async () => {
         incrementSessionCount: stats.incrementSessionCount,
         updateNavigationState: updateNavigationState
     });
+
+    // 新增：如果存在词库，自动开始规律学习
+    const deckNames = Object.keys(vocabularyDecks);
+    if (deckNames.length > 0) {
+        // 延迟执行，确保UI渲染完成
+        setTimeout(() => {
+            console.log('自动开始规律学习，使用第一个词库:', deckNames[0]);
+            regularStudyModule.startRegularStudyWithDeckName(deckNames[0]);
+        }, 100);
+    }
 };
