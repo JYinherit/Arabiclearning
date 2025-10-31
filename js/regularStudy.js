@@ -214,35 +214,35 @@ export class RegularStudy {
 
     prepareStudyQueue(selectedDeck) {
         const words = selectedDeck.words;
-        
-        // 1. 获取需要复习的单词
-        const dueWords = this.scheduler.getDueWords(words);
-        const reviewWords = dueWords.slice(0, this.settings.maxReviewWords);
-        
-        // 2. 获取新单词（未学习过的）
-        const newWords = words.filter(word => 
-            !word.reviews || word.reviews.length === 0 || 
-            (word.stage === 0 && word.rememberedCount === 0)
-        );
-        
-        // 3. 检查今日新词学习限制
+
+        // 1. 获取所有到期单词（这同时包括了需要复习的旧单词和新单词）
+        const allDueWords = this.scheduler.getDueWords(words);
+
+        // 2. 将到期单词明确区分为“复习词”和“新词”，避免重复
+        const reviewWords = allDueWords
+            .filter(word => !this.isNewWord(word)) // isNewWord 判定不是新词的，就是复习词
+            .slice(0, this.settings.maxReviewWords);
+
+        const newWords = allDueWords.filter(word => this.isNewWord(word)); // 从到期词中筛选出新词
+
+        // 3. 检查每日新词学习限制
         const today = new Date().toDateString();
         const learnedToday = this.getTodayLearnedWords(selectedDeck.name);
         const availableNewWords = Math.max(0, this.settings.dailyNewWords - learnedToday);
         const selectedNewWords = newWords.slice(0, availableNewWords);
-        
-        // 4. 合并学习队列
+
+        // 4. 合并成最终的学习队列
         let studyQueue = [];
-        
+
         if (this.settings.newWordsFirst) {
             studyQueue = [...selectedNewWords, ...reviewWords];
         } else {
             studyQueue = [...reviewWords, ...selectedNewWords];
         }
-        
-        // 5. 打乱顺序（但保持新词和复习词的分组）
+
+        // 5. 打乱顺序
         studyQueue = this.shuffleArray(studyQueue);
-        
+
         return studyQueue;
     }
 

@@ -134,54 +134,48 @@ function resetSessionState() {
     isReviewingHistory = false;
 }
 
-async function startSession(vocabulary, deckName, enableFsrs = false) {
+async function startSession(deck, deckName, enableFsrs = false, options = {}) {
     console.log(`开始新会话: ${deckName}, FSRS启用: ${enableFsrs}`);
     isFsrsEnabled = enableFsrs; // 设置FSRS状态
-    
-    // 只是标记会话开始，不增加计数
+
     await stats.onSessionStart();
 
-    console.log('开始会话:', deckName, '单词数量:', vocabulary.length);
-    
-    // 验证输入词汇表 - 使用更宽松的验证
-    const validWords = vocabulary.filter(word => {
+    const validWords = deck.filter(word => {
         if (!word || !word.chinese || !word.arabic) {
             console.warn('跳过无效单词:', word);
             return false;
         }
         return true;
     });
-    
+
     if (validWords.length === 0) {
         alert('所选词库中没有有效的单词！');
         return;
     }
-    
-    if (validWords.length < vocabulary.length) {
-        console.warn(`跳过了 ${vocabulary.length - validWords.length} 个无效单词`);
-    }
-    
-    // 使用验证后的单词列表
+
     initialize(validWords);
     currentDeckNameRef.value = deckName;
-    
-    // 检查是否有保存的会话状态
+    storage.saveSetting('lastActiveDeck', deckName); // 记录最后活动的词库
+
     const savedState = await storage.loadSessionState(deckName);
     if (savedState && confirm('检测到未完成的会话，是否继续？')) {
         restoreSessionState(savedState);
     } else {
-        // 初始化新会话
-        initializeNewSession(validWords);
+        if (options.precomputedQueue) {
+            initializeNewSessionWithQueue(options.precomputedQueue);
+        } else {
+            initializeNewSession(validWords);
+        }
     }
-    
+
     sessionStartDate = new Date().toDateString();
     isSessionActiveRef.value = true;
-    
-    // 切换到学习页面
+
     switchToPage('study-page');
     ui.showScreen(dom.cardContainer);
     showNextWord();
 }
+
 
 // 新增函数：恢复会话状态
 function restoreSessionState(savedState) {
@@ -220,7 +214,23 @@ function restoreSessionState(savedState) {
     }
 }
 
-// 新增函数：初始化新会话
+// 新增函数：使用预设队列初始化新会话
+function initializeNewSessionWithQueue(precomputedQueue) {
+    sessionQueue = [...precomputedQueue];
+    currentSessionTotal = sessionQueue.length;
+
+    // 初始化会话状态
+    sessionState = {
+        sessionQueue: sessionQueue.map(w => ({ chinese: w.chinese, arabic: w.arabic })),
+        sessionLearnedCount: new Map(),
+        sessionWordsState: new Map(),
+        currentSessionTotal: currentSessionTotal,
+        completedCount: 0
+    };
+}
+
+
+// 修改：初始化新会话
 function initializeNewSession(vocabulary) {
     const dueWords = scheduler.getDueWords(vocabulary);
     const sessionWords = dueWords.slice(0, MAX_SESSION_WORDS)
@@ -772,11 +782,14 @@ window.onload = async () => {
         currentModeRef,
         isSessionActive: isSessionActiveRef,
         scheduler,
-        startSession: (vocabulary, deckName) => {
-            // 重置会话状态
-            resetSessionState();
-            // 启动会话，并启用FSRS
-            startSession(vocabulary, deckName, true);
+        startSession: (studyQueue, deckName) => {
+            const fullDeck = vocabularyDecks[deckName];
+            if (!fullDeck) {
+                console.error(`词库 "${deckName}" 未找到，无法开始会话。`);
+                return;
+            }
+            // 调用新的startSession，传入完整词库和预计算的队列
+            startSession(fullDeck, deckName, true, { precomputedQueue: studyQueue });
         },
         showScreen: ui.showScreen,
         cardContainer: dom.cardContainer,
@@ -785,13 +798,15 @@ window.onload = async () => {
         updateNavigationState: updateNavigationState
     });
 
-    // 新增：如果存在词库，自动开始规律学习
+    // 新增：智能自动开始规律学习
     const deckNames = Object.keys(vocabularyDecks);
     if (deckNames.length > 0) {
-        // 延迟执行，确保UI渲染完成
-        setTimeout(() => {
-            console.log('自动开始规律学习，使用第一个词库:', deckNames[0]);
-            regularStudyModule.startRegularStudyWithDeckName(deckNames[0]);
+        setTimeout(async () => {
+            const lastDeckName = await storage.getSetting('lastActiveDeck', null);
+            const deckToStart = (lastDeckName && vocabularyDecks[lastDeckName]) ? lastDeckName : deckNames[0];
+            
+            console.log(`自动开始规律学习，使用词库: ${deckToStart}`);
+            await regularStudyModule.startRegularStudyWithDeckName(deckToStart);
         }, 100);
     }
 };
