@@ -6,6 +6,8 @@ import * as storage from './storage.js';
 import * as stats from './stats.js';
 import ReviewScheduler, { RATING } from './memory.js';
 
+import { STORAGE_KEYS } from './constants.js';
+
 export class RegularStudy {
     constructor(dependencies) {
         this.vocabularyDecks = dependencies.vocabularyDecks;
@@ -22,7 +24,7 @@ export class RegularStudy {
         // 规律学习设置
         this.settings = {
             dailyNewWords: 10, // 每日新单词数量
-            maxReviewWords: 50, // 最大复习单词数量
+            maxReviewWords: 30, // 最大复习单词数量
             newWordsFirst: true, // 先学新词还是先复习
             autoProgress: true // 是否自动推进到下一个词库
         };
@@ -31,15 +33,9 @@ export class RegularStudy {
         this.setupUI();
     }
 
-    loadSettings() {
-        const saved = storage.getSetting('regularStudy', null);
-        if (saved) {
-            this.settings = { ...this.settings, ...saved };
-        }
-    }
-
-    saveSettings() {
-        storage.saveSetting('regularStudy', this.settings);
+    async loadSettings() {
+        this.settings.dailyNewWords = await storage.getSetting(STORAGE_KEYS.DAILY_NEW_WORDS, 10);
+        this.settings.maxReviewWords = await storage.getSetting(STORAGE_KEYS.DAILY_REVIEW_WORDS, 30);
     }
 
     setupUI() {
@@ -379,8 +375,8 @@ showStudyOverview(selectedDeck, studyQueue) {
             this.dependencies.isSessionActive.value = false;
         }
         
-        // 直接调用 startSession，不传入规律学习标志
-        this.startSession(studyQueue, selectedDeck.name);
+        // 直接调用 startSession
+        this.startSession(selectedDeck.words, selectedDeck.name, true, { precomputedQueue: studyQueue });
         
         // 切换到学习页面
         this.dependencies.updateNavigationState('study-page');

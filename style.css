@@ -34,6 +34,17 @@ body {
     to { opacity: 1; }
 }
 
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .page-header {
     background-color: #2d3748;
     color: white;
@@ -149,19 +160,27 @@ body {
 #hard-btn:active { background-color: #ff9800; }
 #easy-btn:active { background-color: #4caf50; }
 
-.import-message {
+#notification-container {
     position: fixed;
-    top: 80px; /* 在页面头部下方 */
+    top: 80px;
     left: 50%;
     transform: translateX(-50%);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.import-message {
     padding: 1rem 1.5rem;
     border-radius: 8px;
     color: white;
     font-weight: bold;
-    z-index: 1001;
     max-width: 90%;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: fadeInDown 0.5s;
 }
 
 .import-success {
@@ -286,9 +305,9 @@ body {
     background: white;
     border-radius: 16px;
     padding: 2rem;
-    margin: 1rem 0;
-    width: 100%;
-    max-width: 500px;
+    margin: 1rem auto;
+    width: 90%;
+    max-width: 90%;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     border: 1px solid #e0e0e0;
     min-height: 200px;
@@ -320,6 +339,14 @@ body {
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
     border-radius: 12px;
     border: 2px dashed #dee2e6;
+}
+
+#answer-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /* 答案和解释显示区域 */
@@ -804,3 +831,342 @@ body {
     width: 100%;
     background: linear-gradient(135deg, #667eea, #764ba2);
 }
+
+/* 主动回忆遮罩 */
+.recall-overlay {
+    position: absolute;
+    top: 0;
+    left: -10%; 
+    width: 120%;
+    height: 140%;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    z-index: 10;
+}
+
+.recall-overlay p {
+    font-size: 1.2rem;
+    margin-top: 1rem;
+}
+
+.recall-circle-timer {
+    width: 80px;
+    height: 80px;
+    position: relative;
+}
+
+.timer-svg {
+    transform: rotate(-90deg);
+}
+
+.timer-bg {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 10;
+}
+
+.timer-progress {
+    fill: none;
+    stroke: #667eea;
+    stroke-width: 10;
+    stroke-dasharray: 283; /* 2 * PI * 45 */
+    stroke-dashoffset: 283;
+    animation: countdown 5s linear forwards;
+}
+
+.timer-countdown {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+}
+
+@keyframes countdown {
+    from {
+        stroke-dashoffset: 0;
+    }
+    to {
+        stroke-dashoffset: 283;
+    }
+}
+
+/* 主动回忆设置 */
+#recall-setting-container {
+    display: flex;
+    align-items: center;
+}
+
+#recall-setting-container label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+#recall-setting {
+    margin-right: 0.5rem;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+/* 夜间模式样式 */
+body.night-mode {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.night-mode .page-header {
+    background-color: #2c2c2c;
+    color: #e0e0e0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.night-mode .bottom-nav {
+    background: #2c2c2c;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.night-mode .nav-btn {
+    color: #a0a0a0;
+}
+
+.night-mode .nav-btn.active {
+    color: #8a9ff0;
+}
+
+.night-mode .nav-btn.active::after {
+    background-color: #8a9ff0;
+}
+
+.night-mode .settings-section,
+.night-mode .feature-section {
+    background-color: #2c2c2c;
+    border-left: 5px solid #8a9ff0;
+}
+
+.night-mode .settings-section h3,
+.night-mode .feature-section h3 {
+    color: #e0e0e0;
+    border-bottom: 1px solid #444;
+}
+
+.night-mode #mode-selection-container {
+    background-color: #444;
+}
+
+.night-mode #mode-selection-container label {
+    color: #a0a0a0;
+}
+
+.night-mode #mode-selection-container input[type="radio"]:checked + .radio-label {
+    background-color: #555;
+    color: #8a9ff0;
+}
+
+.night-mode .flashcard {
+    background: #2c2c2c;
+    border: 1px solid #444;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.night-mode #word-display {
+    color: #e0e0e0;
+    background: linear-gradient(135deg, #3a3a3a, #4a4a4a);
+    border: 2px dashed #666;
+}
+
+.night-mode #answer-display, 
+.night-mode #explanation-display {
+    color: #d0d0d0;
+}
+
+.night-mode .spoiler {
+    background: linear-gradient(135deg, #4a4a4a, #5a5a5a) !important;
+}
+
+.night-mode .spoiler.revealed {
+    background: linear-gradient(135deg, #4c5a7a, #5c6a8a) !important;
+    color: #e0e0e0 !important;
+}
+
+.night-mode #explanation-display {
+    background: linear-gradient(135deg, #4a4a4a, #5a5a5a);
+    color: #d0d0d0;
+    border: 1px solid #666;
+}
+
+.night-mode #explanation-display.spoiler {
+    background: linear-gradient(135deg, #5a5a5a, #6a6a6a) !important;
+}
+
+.night-mode #explanation-display.revealed {
+    background: linear-gradient(135deg, #4a4a4a, #5a5a5a) !important;
+    color: #d0d0d0 !important;
+}
+
+.night-mode .btn {
+    background: linear-gradient(135deg, #8a9ff0 0%, #6a7fde 100%);
+    color: #1a1a1a;
+}
+
+.night-mode .feature-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.night-mode .settings-btn {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.night-mode .deck-btn {
+    background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
+    color: #1a1a1a;
+}
+
+.night-mode #forgot-btn { 
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); 
+    color: white;
+}
+.night-mode #hard-btn { 
+    background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%); 
+    color: white;
+}
+.night-mode #easy-btn { 
+    background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%); 
+    color: white;
+}
+
+.night-mode #nav-controls .btn {
+    background: linear-gradient(135deg, #a8edea, #fed6e3);
+    color: #333;
+}
+
+.night-mode .modal-content {
+    background: #2c2c2c;
+    color: #e0e0e0;
+}
+
+.night-mode #stats-modal-title {
+    color: #e0e0e0;
+    border-bottom: 2px solid #8a9ff0;
+}
+
+.night-mode #stats-modal-body {
+    background-color: #3a3a3a;
+    border: 1px solid #555;
+    color: #d0d0d0;
+}
+
+.night-mode .stats-category h3 {
+    color: #b490ca;
+    border-bottom: 1px solid #555;
+}
+
+.night-mode .stats-item {
+    border-bottom: 1px solid #444;
+}
+
+.night-mode .stats-label {
+    color: #d0d0d0;
+}
+
+.night-mode .stats-value {
+    color: #8a9ff0;
+}
+
+.night-mode #stats-modal-close-btn {
+    background: linear-gradient(135deg, #8a9ff0, #6a7fde);
+    color: #1a1a1a;
+}
+
+.night-mode .import-info {
+    background-color: #3a3a3a;
+    border: 1px solid #555;
+}
+
+.night-mode .format-example {
+    background-color: #4a4a4a;
+    color: #b490ca;
+}
+
+.night-mode #progress-container {
+    background: #444;
+}
+
+.night-mode #progress-bar {
+    background: linear-gradient(90deg, #8a9ff0, #6a7fde);
+}
+
+/* 开关样式 */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #8a9ff0;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #8a9ff0;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+

@@ -1,4 +1,6 @@
 import * as dom from './dom.js';
+import { saveSetting, getSetting } from './storage.js';
+import { STORAGE_KEYS } from './constants.js';
 
 export function showScreen(screen) {
     console.log('显示屏幕:', screen?.id);
@@ -31,7 +33,7 @@ export function showScreen(screen) {
 }
 
 export function updateProgressBar(completed, total) {
-    if (!dom.progressBar) return;
+    if (!dom.progressBar) return; 
     
     let progressPercentage = 0;
     if (total > 0 && completed >= 0) {
@@ -152,7 +154,13 @@ export function showImportMessage(message, isSuccess = true) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `import-message ${isSuccess ? 'import-success' : 'import-error'}`;
     messageDiv.textContent = message;
-    document.body.appendChild(messageDiv);
+    
+    const container = dom.notificationContainer;
+    if (container) {
+        container.appendChild(messageDiv);
+    } else {
+        document.body.appendChild(messageDiv);
+    }
 
     setTimeout(() => {
         messageDiv.remove();
@@ -273,4 +281,114 @@ export function closeStatsModal() {
     if (dom.statsModal) {
         dom.statsModal.classList.remove('visible');
     }
+}
+
+export async function initSettingsUI() {
+    // 初始化学习模式
+    const savedMode = await getSetting(STORAGE_KEYS.STUDY_MODE, 'zh-ar');
+    const modeRadioButton = document.querySelector(`input[name="mode"][value="${savedMode}"]`);
+    if (modeRadioButton) {
+        modeRadioButton.checked = true;
+    }
+
+    // 初始化主动回忆设置
+    const recallEnabled = await getSetting(STORAGE_KEYS.RECALL_MODE, false);
+    if (dom.recallSetting) {
+        dom.recallSetting.checked = recallEnabled;
+    }
+
+    // 初始化规律学习设置
+    const dailyReviewWords = await getSetting(STORAGE_KEYS.DAILY_REVIEW_WORDS, 30);
+    if (dom.dailyReviewWordsInput) {
+        dom.dailyReviewWordsInput.value = dailyReviewWords;
+    }
+
+    const dailyNewWords = await getSetting(STORAGE_KEYS.DAILY_NEW_WORDS, 10);
+    if (dom.dailyNewWordsInput) {
+        dom.dailyNewWordsInput.value = dailyNewWords;
+    }
+
+    // 初始化夜间模式设置
+    const nightModeEnabled = await getSetting(STORAGE_KEYS.NIGHT_MODE, false);
+    if (dom.nightModeToggle) {
+        dom.nightModeToggle.checked = nightModeEnabled;
+    }
+    toggleNightMode(nightModeEnabled);
+}
+
+export function setupSettingsListeners() {
+    // 学习模式切换
+    dom.modeRadioButtons.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            saveSetting(STORAGE_KEYS.STUDY_MODE, e.target.value);
+        });
+    });
+
+    // 主动回忆设置切换
+    if (dom.recallSetting) {
+        dom.recallSetting.addEventListener('change', (e) => {
+            saveSetting(STORAGE_KEYS.RECALL_MODE, e.target.checked);
+        });
+    }
+
+    // 规律学习设置切换
+    if (dom.dailyReviewWordsInput) {
+        dom.dailyReviewWordsInput.addEventListener('change', (e) => {
+            saveSetting(STORAGE_KEYS.DAILY_REVIEW_WORDS, parseInt(e.target.value));
+        });
+    }
+
+    if (dom.dailyNewWordsInput) {
+        dom.dailyNewWordsInput.addEventListener('change', (e) => {
+            saveSetting(STORAGE_KEYS.DAILY_NEW_WORDS, parseInt(e.target.value));
+        });
+    }
+
+    // 夜间模式设置切换
+    if (dom.nightModeToggle) {
+        dom.nightModeToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            saveSetting(STORAGE_KEYS.NIGHT_MODE, enabled);
+            toggleNightMode(enabled);
+        });
+    }
+}
+
+export function toggleNightMode(enabled) {
+    if (enabled) {
+        document.body.classList.add('night-mode');
+    } else {
+        document.body.classList.remove('night-mode');
+    }
+}
+
+export function showRecallOverlay(duration = 5) {
+    if (!dom.recallOverlay || !dom.timerCountdown) {
+        return;
+    }
+
+    dom.recallOverlay.style.display = 'flex';
+    const countdownElement = dom.timerCountdown;
+    const progressCircle = dom.recallOverlay.querySelector('.timer-progress');
+    let countdown = duration;
+
+    progressCircle.style.animation = 'none';
+    // Trigger reflow
+    progressCircle.getBoundingClientRect();
+    progressCircle.style.animation = `countdown ${duration}s linear forwards`;
+
+
+    const updateTimer = () => {
+        countdownElement.textContent = countdown;
+    };
+
+    updateTimer();
+    const interval = setInterval(() => {
+        countdown--;
+        updateTimer();
+        if (countdown < 0) {
+            clearInterval(interval);
+            dom.recallOverlay.style.display = 'none';
+        }
+    }, 1000);
 }

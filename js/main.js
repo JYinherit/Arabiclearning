@@ -5,6 +5,7 @@ import * as stats from './stats.js';
 import { handleFileImport } from './parser.js';
 import ReviewScheduler, { RATING } from './memory.js'; // 导入新的记忆系统
 import { setupRegularStudy } from './regularStudy.js';
+import { STORAGE_KEYS } from './constants.js';
 
 // --- State Variables ---
 const vocabularyDecks = {};
@@ -288,6 +289,11 @@ async function showNextWord() {
     }
     
     ui.displayCard(currentWord, currentModeRef.value);
+
+    const recallEnabled = await storage.getSetting(STORAGE_KEYS.RECALL_MODE, false);
+    if (recallEnabled) {
+        ui.showRecallOverlay(5);
+    }
     
     // 更新进度
     updateAndSaveSessionState();
@@ -594,6 +600,8 @@ function setupNavigation() {
                     break;
                 case 'settings-page':
                     // 设置页面不需要特殊处理
+                    ui.initSettingsUI();
+                    ui.setupSettingsListeners();
                     break;
             }
         });
@@ -782,14 +790,8 @@ window.onload = async () => {
         currentModeRef,
         isSessionActive: isSessionActiveRef,
         scheduler,
-        startSession: (studyQueue, deckName) => {
-            const fullDeck = vocabularyDecks[deckName];
-            if (!fullDeck) {
-                console.error(`词库 "${deckName}" 未找到，无法开始会话。`);
-                return;
-            }
-            // 调用新的startSession，传入完整词库和预计算的队列
-            startSession(fullDeck, deckName, true, { precomputedQueue: studyQueue });
+        startSession: (deck, deckName, enableFsrs, options) => {
+            startSession(deck, deckName, enableFsrs, options);
         },
         showScreen: ui.showScreen,
         cardContainer: dom.cardContainer,
@@ -809,4 +811,8 @@ window.onload = async () => {
             await regularStudyModule.startRegularStudyWithDeckName(deckToStart);
         }, 100);
     }
+
+    // 初始化设置UI
+    ui.initSettingsUI();
+    ui.setupSettingsListeners();
 };

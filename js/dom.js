@@ -40,6 +40,17 @@ export const clearDataBtn = document.getElementById('clear-data-btn');
 
 export const modeRadioButtons = document.querySelectorAll('input[name="mode"]');
 
+export const recallSetting = document.getElementById('recall-setting');
+export const recallOverlay = document.getElementById('recall-overlay');
+export const timerCountdown = document.querySelector('.timer-countdown');
+
+export const dailyReviewWordsInput = document.getElementById('daily-review-words');
+export const dailyNewWordsInput = document.getElementById('daily-new-words');
+
+export const notificationContainer = document.getElementById('notification-container');
+
+export const nightModeToggle = document.getElementById('night-mode-toggle');
+
 
 // 确保所有必需的DOM元素都存在
 export function validateDOMElements() {

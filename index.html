@@ -31,8 +31,20 @@
                     <!-- 闪卡内容将由JavaScript动态组织 -->
                     <div class="flashcard">
                         <h2 id="word-display"></h2>
-                        <div id="answer-display" class="spoiler" title="点击显示/隐藏答案"></div>
-                        <p id="explanation-display" class="spoiler"></p>
+                        <div id="answer-wrapper">
+                            <div id="answer-display" class="spoiler" title="点击显示/隐藏答案"></div>
+                            <p id="explanation-display" class="spoiler"></p>
+                            <div id="recall-overlay" class="recall-overlay" style="display: none;">
+                                <div class="recall-circle-timer">
+                                    <svg class="timer-svg" viewBox="0 0 100 100">
+                                        <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
+                                        <circle class="timer-progress" cx="50" cy="50" r="45"></circle>
+                                    </svg>
+                                    <span class="timer-countdown">5</span>
+                                </div>
+                                <p>请先主动回忆</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 控制按钮 -->
@@ -136,6 +148,40 @@
                 </div>
 
                 <div class="settings-section">
+                    <h3>外观设置</h3>
+                    <div class="setting-item">
+                        <span>日间模式</span>
+                        <label class="switch">
+                            <input type="checkbox" id="night-mode-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <span>夜间模式</span>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>主动回忆</h3>
+                    <div id="recall-setting-container">
+                        <label>
+                            <input type="checkbox" id="recall-setting"> 
+                            <span class="checkbox-label">开启主动回忆遮罩</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>规律学习设置</h3>
+                    <div class="setting-item">
+                        <label for="daily-review-words">每日复习单词数</label>
+                        <input type="number" id="daily-review-words" min="0" value="30">
+                    </div>
+                    <div class="setting-item">
+                        <label for="daily-new-words">每日新学习单词数</label>
+                        <input type="number" id="daily-new-words" min="0" value="10">
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <h3>数据管理</h3>
                     <div class="settings-buttons">
                         <button id="view-stats-btn" class="btn settings-btn">
@@ -197,6 +243,8 @@
             <button id="stats-modal-close-btn" class="btn">关闭</button>
         </div>
     </div>
+
+    <div id="notification-container"></div>
 
     <script src="js/update.js"></script>
     <script type="module" src="js/main.js"></script>

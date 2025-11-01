@@ -5,9 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b69120a5-4ef1-414d-ac8a-b31dc4ad65f5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/constants.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/constants.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/dom.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/dom.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/main.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../js/regularStudy.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/regularStudy.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../js/ui.js" beforeDir="false" afterPath="$PROJECT_DIR$/../js/ui.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../style.css" beforeDir="false" afterPath="$PROJECT_DIR$/../style.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
