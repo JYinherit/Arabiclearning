@@ -3,60 +3,68 @@
 
 [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/JYinherit/Arabiclearning)
 
+
 # ArabicMemory: 一个专注的阿拉伯语单词记忆工具
 
-本项目由“钧鸢inherit”创建，众多开发者共创，旨在提供一个纯粹、高效的阿拉伯语单词记忆工具。它为阿拉伯语学习者设计，帮助您在背单词的道路上走得更稳、更远。
+本项目由“钧鸢inherit”创建，众多开发者共创，是一个基于 **FSRS** (Free Spaced Repetition Scheduler) 算法的语言学习应用。它为阿拉伯语学习者设计，希望能提供一个纯粹、高效的单词记忆体验。
 
 ## 核心功能
 
-- **灵活的学习模式**:
-  - **双向记忆**: 支持“看中文记阿语”和“看阿语记中文”两种模式，以及随机切换的“混合模式”，满足不同阶段的复习需求。
-  - **智能间隔重复**: 内置基于艾宾浩斯遗忘曲线的间隔重复算法(SRS)。系统会根据你的记忆情况（正确、错误）自动调整单词的复习时间（如3天、7天、30天后），确保你高效记忆，并优先复习即将忘记的词汇。
-  - **随机测试**: 可以从多个词库中随机抽取指定数量的单词进行集中测试，检验学习效果。
+- **学习引擎 (FSRS)**:
+  - **间隔重复算法**: 应用核心采用了 **FSRS 算法**。它会根据您的记忆行为（正确、模糊、忘记）动态调整每个单词的复习计划，以期更适合长期记忆。
+  - **动态调整复习计划**: FSRS 能够计算出每个单词的复习时间，在您可能将要忘记的临界点安排复习，以帮助提升记忆效率。
 
-- **便捷的词库管理**:
-  - **自定义导入**: 支持从 `JSON`, `CSV`, `.js` 或 `TXT` 文件导入您自己的词库。您可以根据教材或兴趣，创建个性化的学习内容。
-  - **本地化存储**: 您的词库和学习进度都保存在浏览器本地，无需联网，打开即用。
+- **规律学习模式**:
+  - **自动化学习计划**: “规律学习”模式会为您安排每日学习任务，结合了“新单词学习”和“到期单词复习”，您只需点击开始，即可进行当天的学习。
+  - **可配置的学习强度**: 您可以在设置中调整每日学习的新词数量和复习词数量，以适应自己的学习节奏。
 
-- **实用的数据管理**:
-  - **学习统计**: 提供基础的统计功能，让您了解自己的学习进度和已掌握的词汇量。
-  - **备份与恢复**: 支持将所有数据（词库、进度）导出为备份文件，并可随时恢复，防止数据丢失。
+- **界面与功能**:
+  - **新的用户界面**: 应用界面设计为带底部导航的单页应用 (SPA)，可以在“学习”、“词库”和“设置”三个核心模块间进行切换。
+  - **跨平台支持**: 基于 Electron 和 Capacitor，本项目可作为桌面应用 (Windows/macOS) 和移动应用 (Android) 使用，以提供稳定的使用体验。
+  - **会话持久化**: 学习可以随时中断。应用会自动保存您的学习会话，下次打开时可选择从上次中断的地方继续。
+
+- **词库管理**:
+  - **支持多种导入方式**: 支持从 `JSON`, `CSV`, `.js` 或 `TXT` 文件导入您自己的词库，方便您进行个性化学习。
+  - **在线词库 (新!)**: 新增了“在线词库”功能，可以一键从云端获取、导入一些预置的词库。
+  - **数据管理**: 提供了数据管理选项，包括学习统计、备份与恢复，也可以按类型（如词库、进度、设置）清除数据。
 
 - **阿拉伯语盲打训练**:
-  - **独立训练模块**: 项目内置一个独立的阿拉伯语键盘盲打训练工具 (`盲打训练.html`)。
-  - **科学练习**: 支持键位提示、多种字符集（字母、符号、数字）练习，并提供准确率、反应时间、CPM/WPM等专业统计。
+  - **独立训练模块**: 项目依然内置了阿拉伯语键盘盲打训练工具 (`盲打训练.html`)。
+  - **科学练习**: 支持键位提示、多种字符集练习，并提供准确率、反应时间、CPM/WPM 等统计，帮助您进行练习。
 
 ## 未来计划
 
-为了让这个工具更好地服务于阿拉伯语学习者，以下是一些正在构思和计划中的功能：
+为了让这个工具能更好地陪伴您的学习旅程，我们构思了一些未来可能增加的功能和改进方向：
 
-- **✅ 应用封装**: 将项目封装为独立的桌面 (Windows/macOS) 和移动应用 (iOS/~~Android~~)，提供更稳定的原生体验。
-- **🗣️ AI 语音朗读**: 集成成熟的AI语音合成技术，为每个单词和例句提供高质量、发音清晰的阿拉伯语朗读。
-- **🤖 AI 学习助理**: 引入AI大语言模型作为学习伙伴，可以实现：
-  - **智能问答**: 针对单词进行提问，例如“这个词还有哪些同义词？”或“帮我用这个词造个句子”。
-  - **例句扩展**: 为一个单词提供多个不同场景下的实用例句。
-- **🎮 游戏化学习**:
-  - **成就系统**: 设立“连续学习7天”、“掌握1000个词汇”等成就徽章。
-  - **学习日历**: 以可视化的方式记录每日学习情况，形成打卡热力图。
-- **🔄 版本与更新**:
-  - **~~热更新/版本检查~~**: 应用启动时自动检查新版本，并提示用户更新，无需重新下载。
-- **📚 内容生态**:
-  - **内置词库扩充**: 按主题（如商务、旅行、媒体）或教材（如《新编阿拉伯语》系列）制作并内置更多高质量词库。
-  - **错题本**: 自动收集用户经常记错的单词，生成专属的“错题本”以供强化复习。
-- **🧠 算法与云服务**:
-  - **优化记忆算法**: 进一步改进和优化间隔重复模型，提供更个性化的复习计划。
-  - **云词库**: 建立一个社区驱动的云端词库，用户可以分享、下载和评价词库。
-  - **云同步 (可选)**: 为注册用户提供一个选项，允许将学习进度和词库安全地同步到云端，实现跨设备学习。
+- **AI 辅助学习**:
+  - **语音朗读**: 计划为单词和例句集成语音合成功能，帮助您更好地掌握发音。
+  - **学习伙伴**: 考虑引入 AI 学习助理，可以围绕单词进行智能问答、生成更多例句等。
+
+- **游戏化与激励**:
+  - **成就系统**: 可能会加入一些简单的成就徽章，如“连续学习7天”、“掌握1000词汇”等，为学习增添一些乐趣。
+  - **学习日历**: 考虑以热力图的形式，将每日的学习情况可视化，记录您的点滴进步。
+
+- **内容与生态**:
+  - **云词库社区**: 希望将现有的在线词库功能，逐步发展为一个由社区驱动的分享平台，用户可以上传、下载和评价词库。
+  - **错题本功能**: 计划增加一个专门的“错题本”功能，自动收录您经常记错的单词，以便进行强化复习。
+
+- **云服务支持**:
+  - **跨设备同步**: 我们正在探索为用户提供学习进度和词库的云同步选项，方便您在不同设备上无缝切换。
+
+- **持续改进**:
+  - 我们会持续关注 FSRS 算法的进展并优化参数，并根据大家的反馈，不断改进应用的操作体验。
 
 ## 快速上手
 
 1.  **单词记忆**:
-    - 用浏览器直接打开 `index.html` 文件即可开始使用。
-    - 在主菜单选择预设词库，或点击“选择文件导入”按钮导入您自己的词库。
-    - 在设置中选择您喜欢的学习模式，开始您的阿拉伯语记忆之旅！
+    - **桌面端**: 运行 `npm start` 启动 Electron 应用。
+    - **浏览器**: 直接用浏览器打开 `index.html` 文件。
+    - **开始学习**:
+      1.  在“词库”页面，点击“规律学习”即可自动开始当天的学习任务。
+      2.  您也可以手动选择一个词库开始学习。
+      3.  通过“在线词库”或“从本地文件导入”来添加新词库。
 2.  **盲打训练**:
-    - 用浏览器直接打开 `盲打训练.html` 文件。
-    - 根据提示进行设置，点击“开始训练”即可练习。
+    - 用浏览器直接打开 `盲打训练.html` 文件即可开始练习。
 
 ---
 *由 钧鸢inherit及其他开源开发者 开发。愿这款工具能成为您学习路上的一个小小助力。*
