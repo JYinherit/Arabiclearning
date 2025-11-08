@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>钧鸢的阿拉伯语记忆</title>
+    <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <!-- 引入 Font Awesome 免费版，用于设置图标 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
 
@@ -31,6 +33,7 @@
                     <!-- 闪卡内容将由JavaScript动态组织 -->
                     <div class="flashcard">
                         <h2 id="word-display"></h2>
+                        <div id="definition-toggle-container"></div>
                         <div id="answer-wrapper">
                             <div id="answer-display" class="spoiler" title="点击显示/隐藏答案"></div>
                             <p id="explanation-display" class="spoiler"></p>
@@ -88,6 +91,12 @@
                         </button>
                     </div>
 
+                    <div id="skeleton-loader" class="skeleton-loader">
+                        <div class="skeleton-item"></div>
+                        <div class="skeleton-item"></div>
+                        <div class="skeleton-item"></div>
+                    </div>
+
                     <div id="deck-selection-container"></div>
 
                     <div id="import-section" class="feature-section">
@@ -95,7 +104,10 @@
                         <h3>导入新词库</h3>
                         <input type="file" id="file-input" accept=".json,.csv,.js,.txt" style="display: none;">
                         <button id="import-btn" class="btn feature-btn">
-                            📁 选择文件导入
+                            📁 从本地文件导入
+                        </button>
+                        <button id="online-import-btn" class="btn feature-btn" style="background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);">
+                            ☁️ 在线词库
                         </button>
                         <div id="import-info">
                             <p>支持格式：JSON、CSV、JS对象</p>
@@ -196,7 +208,7 @@
                         <button id="check-storage-btn" class="btn settings-btn">
                             <i class="fas fa-hdd"></i> 存储空间
                         </button>
-                        <button id="clear-data-btn" class="btn settings-btn danger">
+                        <button id="open-clear-data-modal-btn" class="btn settings-btn danger">
                             <i class="fas fa-trash"></i> 清除数据
                         </button>
                     </div>
@@ -244,9 +256,67 @@
         </div>
     </div>
 
+    <!-- 在线词库导入模态框 -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>在线词库</h2>
+            <p class="modal-subtitle">点击词库名称即可快速导入</p>
+            <div id="online-lexicon-list">
+                <!-- 在线词库将由JS动态加载到这里 -->
+            </div>
+            <div class="modal-footer">
+                <div class="import-divider"></div>
+                <button id="import-local-lexicon-btn" class="btn feature-btn">
+                    📁 或者...从本地文件导入
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据清除确认模态框 -->
+    <div id="clear-data-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>清除数据</h2>
+            <p>选择要永久清除的数据类型。此操作不可逆。</p>
+            <div class="clear-options">
+                <label><input type="checkbox" name="clear-option" value="decks" checked> 所有词库 (单词及其定义)</label>
+                <label><input type="checkbox" name="clear-option" value="progress" checked> 学习进度 (记忆间隔)</label>
+                <label><input type="checkbox" name="clear-option" value="sessions" checked> 会话状态 (未完成的学习会话)</label>
+                <label><input type="checkbox" name="clear-option" value="stats" checked> 统计数据 (学习日、首次学习日期等)</label>
+                <label><input type="checkbox" name="clear-option" value="settings" checked> 应用设置 (模式、每日目标等)</label>
+            </div>
+            <button id="execute-clear-data-btn" class="btn danger">确认清除</button>
+        </div>
+    </div>
+
+    <!-- 新增：继续会话模态框 -->
+    <div id="continue-session-modal" class="modal">
+        <div class="modal-content">
+            <h2>发现未完成的会话</h2>
+            <p>您想继续上次的学习吗？</p>
+            <div class="modal-actions">
+                <button id="decline-continue-btn" class="btn btn-secondary">重新开始</button>
+                <button id="confirm-continue-btn" class="btn">继续学习</button>
+            </div>
+        </div>
+    </div>
+
     <div id="notification-container"></div>
 
-    <script src="js/update.js"></script>
+    <script type="module" src="js/update.js"></script>
     <script type="module" src="js/main.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,412 +1,268 @@
-// regularStudy.js - 规律学习功能（每日新词+FSRS复习）
+/**
+ * @fileoverview 管理“规律学习”功能。
+ * 该模块选择一个合适的词库进行学习，根据 FSRS 准备一个优先的
+ * 新词和到期词的队列，并启动学习会话。
+ */
 
-import * as dom from './dom.js';
-import * as ui from './ui.js';
-import * as storage from './storage.js';
-import * as stats from './stats.js';
-import ReviewScheduler, { RATING } from './memory.js';
-
+import ReviewScheduler from './memory.js';
+import { dbManager } from './db.js';
 import { STORAGE_KEYS } from './constants.js';
+import { shuffleArray } from './utils.js';
+import { getSetting } from './storage.js';
 
 export class RegularStudy {
+    /**
+     * @param {object} dependencies - 来自主应用的依赖项。
+     * @param {Array} dependencies.vocabularyWords - 对主词汇数组的引用。
+     * @param {Function} dependencies.startSession - 用于开始学习会话的主函数。
+     * @param {object} dependencies.currentDeckNameRef - 对当前词库名称的引用。
+     */
     constructor(dependencies) {
-        this.vocabularyDecks = dependencies.vocabularyDecks;
-        this.currentDeckNameRef = dependencies.currentDeckNameRef;
-        this.currentModeRef = dependencies.currentModeRef;
-        this.scheduler = dependencies.scheduler || new ReviewScheduler();
+        this.vocabularyWords = dependencies.vocabularyWords;
         this.startSession = dependencies.startSession;
-        this.showScreen = dependencies.showScreen;
-        this.cardContainer = dependencies.cardContainer;
-        this.showNextWord = dependencies.showNextWord;
-        this.incrementSessionCount = dependencies.incrementSessionCount;
-        this.dependencies = dependencies; // 保存所有依赖
-        
-        // 规律学习设置
+        this.currentDeckNameRef = dependencies.currentDeckNameRef;
+        this.scheduler = new ReviewScheduler();
         this.settings = {
-            dailyNewWords: 10, // 每日新单词数量
-            maxReviewWords: 30, // 最大复习单词数量
-            newWordsFirst: true, // 先学新词还是先复习
-            autoProgress: true // 是否自动推进到下一个词库
+            maxReviewWords: 30,
+            dailyNewWords: 10,
         };
-        
-        this.loadSettings();
-        this.setupUI();
+        this.learnedToday = new Map(); // 跟踪每个词库今天学习的新词。
+        this.statsCache = new Map();
+        this.CACHE_TTL = 5 * 60 * 1000; // 5 分钟
+        this.MAX_CACHE_SIZE = 50; // 添加最大限制
     }
 
+    /**
+     * 从存储中加载规律学习相关的设置。
+     */
     async loadSettings() {
-        this.settings.dailyNewWords = await storage.getSetting(STORAGE_KEYS.DAILY_NEW_WORDS, 10);
-        this.settings.maxReviewWords = await storage.getSetting(STORAGE_KEYS.DAILY_REVIEW_WORDS, 30);
+        this.settings.maxReviewWords = await getSetting(STORAGE_KEYS.DAILY_REVIEW_WORDS, 30);
+        this.settings.dailyNewWords = await getSetting(STORAGE_KEYS.DAILY_NEW_WORDS, 10);
+        console.log('[RegularStudy] 已加载学习设置:', this.settings);
     }
 
-    setupUI() {
-        
-        if (dom.regularStudyBtn) {
-            dom.regularStudyBtn.addEventListener('click', () => {
-                this.startRegularStudy();
-            });
+    /**
+     * 从 IndexedDB 加载今天已学习的新词统计信息。
+     * 如果记录是昨天的，则会忽略。
+     */
+    async loadLearnedToday() {
+        const storedStats = await dbManager.getSetting(STORAGE_KEYS.REGULAR_STUDY_STATS);
+        const today = new Date().toISOString().split('T')[0];
+        if (storedStats && storedStats.date === today && Array.isArray(storedStats.learnedToday)) {
+            this.learnedToday = new Map(storedStats.learnedToday);
+            console.log('[RegularStudy] 已从存储中加载今日学习统计。');
         }
-        
-        // 设置模态框内容保持不变...
     }
 
-    saveRegularStudySettings() {
-        this.settings.dailyNewWords = parseInt(document.getElementById('daily-new-words').value) || 10;
-        this.settings.maxReviewWords = parseInt(document.getElementById('max-review-words').value) || 50;
-        this.settings.newWordsFirst = document.getElementById('new-words-first').checked;
-        this.settings.autoProgress = document.getElementById('auto-progress').checked;
-        
-        this.saveSettings();
-        ui.showImportMessage('规律学习设置已保存', true);
-        ui.closeSettingsModal();
+    /** 检查一个单词是否是新学的。 */
+    isNewWord(word) {
+        return !word.progress || !word.progress.stage || word.progress.stage === 0;
     }
 
-    async startRegularStudy() {
-        if (Object.keys(this.vocabularyDecks).length === 0) {
-            alert('请先导入至少一个词库！');
-            return;
+    /** 获取今天为指定词库学习的新单词数。 */
+    getTodayLearnedWords(deckName) {
+        const today = new Date().toISOString().split('T')[0];
+        const record = this.learnedToday.get(deckName);
+        if (record && record.date === today) {
+            return record.count;
         }
-
-        // 选择词库
-        const selectedDeck = await this.selectDeckForRegularStudy();
-        if (!selectedDeck) return;
-
-        this.currentDeckNameRef.value = selectedDeck.name;
-        
-        // 准备学习队列
-        const studyQueue = await this.prepareStudyQueue(selectedDeck);
-        
-        if (studyQueue.length === 0) {
-            alert('今天没有需要学习的单词！\n\n所有单词都已掌握或达到今日学习上限。');
-            return;
-        }
-
-        // 显示今日学习概览
-        this.showStudyOverview(selectedDeck, studyQueue);
+        return 0;
     }
 
-    async selectDeckForRegularStudy() {
-        return new Promise((resolve) => {
-            const deckNames = Object.keys(this.vocabularyDecks).filter(name => 
-                this.vocabularyDecks[name].length > 0
-            );
+    /** 
+     * 为指定词库增加今天学习的新单词计数，并持久化结果。
+     */
+    async incrementTodayLearnedWords(deckName) {
+        const today = new Date().toISOString().split('T')[0];
 
-            if (deckNames.length === 1) {
-                resolve({
-                    name: deckNames[0],
-                    words: this.vocabularyDecks[deckNames[0]]
-                });
-                return;
+        // 清理掉其他日期的过时条目
+        for (const [key, value] of this.learnedToday.entries()) {
+            if (value.date !== today) {
+                this.learnedToday.delete(key);
             }
+        }
 
-        // 创建选择模态框 - 修复定位
-        const modal = document.createElement('div');
-        modal.className = 'modal visible';
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        `;
-        
-        modal.innerHTML = `
-            <div class="modal-content" style="
-                background: white;
-                padding: 2rem;
-                border-radius: 12px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-                max-width: 90%;
-                width: 500px;
-                max-height: 80vh;
-                overflow-y: auto;
-                margin: 2rem;
-            ">
-                <h2 style="margin-top: 0; color: #333; border-bottom: 2px solid #667eea; padding-bottom: 0.5rem;">
-                    选择学习词库
-                </h2>
-                <div id="regular-study-deck-selector" style="
-                    max-height: 300px; 
-                    overflow-y: auto; 
-                    margin: 1.5rem 0;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 8px;
-                    padding: 1rem;
-                ">
-                    ${deckNames.map(deckName => `
-                        <label style="
-                            display: block; 
-                            margin-bottom: 1rem; 
-                            padding: 1rem;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            transition: background-color 0.3s;
-                            border: 2px solid transparent;
-                        " onmouseover="this.style.backgroundColor='#f5f5f5'; this.style.borderColor='#667eea'" 
-                          onmouseout="this.style.backgroundColor=''; this.style.borderColor='transparent'">
-                            <input type="radio" name="regular-study-deck" value="${deckName}" 
-                                   style="margin-right: 12px; transform: scale(1.2);">
-                            <strong>${deckName}</strong> (${this.vocabularyDecks[deckName].length}词)
-                            <div style="font-size: 0.85em; color: #666; margin-top: 0.3rem;">
-                                ${this.getDeckProgressStats(deckName)}
-                            </div>
-                        </label>
-                    `).join('')}
-                </div>
-                <div style="text-align: right; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
-                    <button id="cancel-deck-select" class="btn" style="background: linear-gradient(135deg, #757575 0%, #9e9e9e 100%); margin-right: 0.8rem;">取消</button>
-                    <button id="confirm-deck-select" class="btn" style="background: linear-gradient(135deg, #9c27b0 0%, #6a1b9a 100%);">开始学习</button>
-                </div>
-            </div>
-        `;
+        const record = this.learnedToday.get(deckName);
+        if (record) { // 记录必定是今天的
+            record.count++;
+        } else {
+            this.learnedToday.set(deckName, { date: today, count: 1 });
+        }
 
-        document.body.appendChild(modal);
+        console.log(`[RegularStudy] Deck "${deckName}" new words learned today: ${this.getTodayLearnedWords(deckName)}`);
 
-            document.getElementById('cancel-deck-select').addEventListener('click', () => {
-                document.body.removeChild(modal);
-                resolve(null);
-            });
-
-            document.getElementById('confirm-deck-select').addEventListener('click', () => {
-                const selected = document.querySelector('input[name="regular-study-deck"]:checked');
-                if (selected) {
-                    document.body.removeChild(modal);
-                    resolve({
-                        name: selected.value,
-                        words: this.vocabularyDecks[selected.value]
-                    });
-                } else {
-                    alert('请选择一个词库！');
-                }
-            });
-
-            // 点击外部关闭
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                    resolve(null);
-                }
-            });
+        // 持久化更新后的 Map
+        await dbManager.saveSetting(STORAGE_KEYS.REGULAR_STUDY_STATS, {
+            date: today,
+            learnedToday: Array.from(this.learnedToday.entries()) // 为可序列化，将 Map 转为数组
         });
     }
 
-    getDeckProgressStats(deckName) {
-        const words = this.vocabularyDecks[deckName];
-        if (!words || words.length === 0) return '无单词';
+    /**
+     * 为给定的一组单词计算进度统计（新词、复习、已掌握）。
+     * @param {Array<object>} words - 要分析的单词。
+     * @returns {Promise<object>} 一个包含单词统计信息的对象。
+     */
+    async getDeckProgressStats(words) {
+        if (!words || words.length === 0) return { review: 0, new: 0, mastered: 0 };
+
+        const arabicKeys = words.map(w => w.arabic);
+        const progressMap = await dbManager.getWordProgressBatch(arabicKeys);
+        const wordsWithProgress = words.map(word => {
+            const savedProgress = progressMap.get(word.arabic);
+            return savedProgress ? { ...word, progress: savedProgress } : this.scheduler.initializeWord(word);
+        });
         
-        const dueWords = this.scheduler.getDueWords(words);
-        const newWords = words.filter(word => 
-            !word.reviews || word.reviews.length === 0 || 
-            (word.stage === 0 && word.rememberedCount === 0)
+        const dueWords = this.scheduler.getDueWords(wordsWithProgress);
+        const newWords = wordsWithProgress.filter(word => this.isNewWord(word));
+        const masteredWords = wordsWithProgress.filter(word => (word.progress?.stage || 0) >= 4);
+        
+        return { review: dueWords.length, new: newWords.length, mastered: masteredWords.length };
+    }
+
+    /**
+     * 通过对扁平化的单词列表进行分组，计算所有词库的进度统计。
+     * @returns {Promise<Array<object>>} 每个词库的统计对象列表。
+     */
+    async getAllDecksProgressStats() {
+        const decks = this.vocabularyWords.reduce((acc, word) => {
+            word.definitions.forEach(def => {
+                if (!acc[def.sourceDeck]) {
+                    acc[def.sourceDeck] = [];
+                }
+                acc[def.sourceDeck].push(word);
+            });
+            return acc;
+        }, {});
+
+        const now = Date.now();
+        const stats = [];
+        for (const deckName in decks) {
+            const cached = this.statsCache.get(deckName);
+            if (cached && (now - cached.timestamp < this.CACHE_TTL)) {
+                stats.push(cached.data);
+                continue; // 使用缓存数据
+            }
+
+            // 如果没有缓存或已过期，则计算统计数据
+            const deckWords = [...new Set(decks[deckName])];
+            const deckStats = await this.getDeckProgressStats(deckWords);
+            const finalStats = {
+                deckName,
+                dueCount: deckStats.review + deckStats.new,
+                ...deckStats
+            };
+
+            // 存入缓存
+            this.statsCache.set(deckName, {
+                timestamp: now,
+                data: finalStats
+            });
+
+            if (this.statsCache.size >= this.MAX_CACHE_SIZE) {
+                const oldestKey = this.statsCache.keys().next().value;
+                this.statsCache.delete(oldestKey);
+            }
+
+            stats.push(finalStats);
+        }
+        return stats;
+    }
+
+    /**
+     * 为给定的一组词库单词准备一个优先的学习队列。
+     * 队列由到期的复习单词和有限数量的新单词组成。
+     * @param {Array<object>} deckWords - 属于正在学习的词库的单词。
+     * @returns {Promise<Array<object>>} 经过优先级排序和打乱的学习队列。
+     */
+    async prepareStudyQueue(deckWords) {
+        await this.loadSettings(); // 每次准备队列时重新加载设置，以确保使用的是最新值。
+        const arabicKeys = deckWords.map(w => w.arabic);
+        const progressMap = await dbManager.getWordProgressBatch(arabicKeys);
+        const wordsWithProgress = deckWords.map(word => {
+            const savedProgress = progressMap.get(word.arabic);
+            return savedProgress ? { ...word, progress: savedProgress } : this.scheduler.initializeWord(word);
+        });
+        
+        // 分离到期复习词和新词
+        const reviewWords = wordsWithProgress.filter(word => 
+            !this.isNewWord(word) && this.scheduler.fsrs.isCardDue(word)
         );
-        const masteredWords = words.filter(word => word.stage >= 4);
+        const newWords = wordsWithProgress.filter(word => this.isNewWord(word));
+
+        // 按到期时间对复习词排序
+        reviewWords.sort((a, b) => (a.progress?.dueDate || 0) - (b.progress?.dueDate || 0));
         
-        return `复习: ${dueWords.length} | 新词: ${newWords.length} | 已掌握: ${masteredWords.length}`;
-    }
+        // 1. 优先处理复习单词，最多不超过设定的上限。
+        const selectedReviewWords = reviewWords.slice(0, this.settings.maxReviewWords);
 
-    prepareStudyQueue(selectedDeck) {
-        const words = selectedDeck.words;
+        // 2. 计算今天还可以学习多少新单词。
+        const learnedTodayCount = this.getTodayLearnedWords(this.currentDeckNameRef.value);
+        const newWordsDailyQuota = Math.max(0, this.settings.dailyNewWords - learnedTodayCount);
 
-        // 1. 获取所有到期单词（这同时包括了需要复习的旧单词和新单词）
-        const allDueWords = this.scheduler.getDueWords(words);
+        // 3. 新单词不应使当前会话的总数超过复习上限。
+        const remainingSessionCapacity = Math.max(0, this.settings.maxReviewWords - selectedReviewWords.length);
 
-        // 2. 将到期单词明确区分为“复习词”和“新词”，避免重复
-        const reviewWords = allDueWords
-            .filter(word => !this.isNewWord(word)) // isNewWord 判定不是新词的，就是复习词
-            .slice(0, this.settings.maxReviewWords);
+        // 4. 要添加的新单词数取所有约束条件下的最小值。
+        const numberOfNewWordsToAdd = Math.min(newWords.length, newWordsDailyQuota, remainingSessionCapacity);
+        
+        const selectedNewWords = newWords.slice(0, numberOfNewWordsToAdd);
 
-        const newWords = allDueWords.filter(word => this.isNewWord(word)); // 从到期词中筛选出新词
-
-        // 3. 检查每日新词学习限制
-        const today = new Date().toDateString();
-        const learnedToday = this.getTodayLearnedWords(selectedDeck.name);
-        const availableNewWords = Math.max(0, this.settings.dailyNewWords - learnedToday);
-        const selectedNewWords = newWords.slice(0, availableNewWords);
-
-        // 4. 合并成最终的学习队列
-        let studyQueue = [];
-
-        if (this.settings.newWordsFirst) {
-            studyQueue = [...selectedNewWords, ...reviewWords];
-        } else {
-            studyQueue = [...reviewWords, ...selectedNewWords];
-        }
-
-        // 5. 打乱顺序
-        studyQueue = this.shuffleArray(studyQueue);
-
-        return studyQueue;
-    }
-
-    getTodayLearnedWords(deckName) {
-        const today = new Date().toDateString();
-        const key = `regularStudy_${deckName}_${today}`;
-        return parseInt(localStorage.getItem(key) || '0');
-    }
-
-    setTodayLearnedWords(deckName, count) {
-        const today = new Date().toDateString();
-        const key = `regularStudy_${deckName}_${today}`;
-        localStorage.setItem(key, count.toString());
-    }
-
-    shuffleArray(array) {
-        const newArray = [...array];
-        for (let i = newArray.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-        }
-        return newArray;
-    }
-
-showStudyOverview(selectedDeck, studyQueue) {
-    console.log('显示学习概览:', selectedDeck.name, '单词数量:', studyQueue.length);
-    
-    // 移除任何已存在的模态框
-    const existingModal = document.getElementById('regular-study-overview-modal');
-    if (existingModal) {
-        document.body.removeChild(existingModal);
-    }
-
-    const modal = document.createElement('div');
-    modal.id = 'regular-study-overview-modal';
-    modal.innerHTML = `
-        <div class="modal-backdrop" style="
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        ">
-            <div class="modal-content" style="
-                background: white;
-                padding: 2rem;
-                border-radius: 12px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                max-width: 90vw;
-                width: 500px;
-                max-height: 80vh;
-                overflow-y: auto;
-                position: relative;
-                margin: 20px;
-            ">
-                <h2 style="margin-top: 0; color: #333; border-bottom: 2px solid #4caf50; padding-bottom: 0.5rem;">
-                    📚 今日学习计划
-                </h2>
-                <div style="text-align: left; margin: 1.5rem 0; line-height: 1.8;">
-                    <p><strong>词库:</strong> ${selectedDeck.name}</p>
-                    <p><strong>总单词:</strong> ${selectedDeck.words.length} 个</p>
-                    <p><strong>今日计划:</strong> ${studyQueue.length} 个单词</p>
-                    <div style="background: #f8f9fa; padding: 1.2rem; border-radius: 8px; margin: 1.2rem 0; border-left: 4px solid #667eea;">
-                        <p>📖 <strong>需要复习:</strong> ${this.scheduler.getDueWords(selectedDeck.words).length} 个</p>
-                        <p>🆕 <strong>可学新词:</strong> ${studyQueue.filter(w => this.isNewWord(w)).length} 个</p>
-                    </div>
-                    ${studyQueue.length === 0 ? 
-                        '<p style="color: #d32f2f; background: #ffebee; padding: 1rem; border-radius: 4px;">⚠️ 今天没有需要学习的单词，请明天再来！</p>' :
-                        '<p style="color: #2e7d32; background: #e8f5e8; padding: 1rem; border-radius: 4px;">💡 点击"开始学习"立即开始今日计划</p>'
-                    }
-                </div>
-                <div style="text-align: right; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
-                    <button id="cancel-regular-study" class="btn" style="background: #6c757d; margin-right: 0.8rem;">取消</button>
-                    ${studyQueue.length > 0 ? 
-                        `<button id="start-regular-study" class="btn" style="background: #4caf50;">开始学习</button>` :
-                        `<button id="close-regular-study" class="btn" style="background: #6c757d;">关闭</button>`
-                    }
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // 事件监听
-    document.getElementById('cancel-regular-study')?.addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-
-    document.getElementById('close-regular-study')?.addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-
-    document.getElementById('start-regular-study')?.addEventListener('click', () => {
-        document.body.removeChild(modal);
-        this.beginStudySession(selectedDeck, studyQueue);
-    });
-
-    // 点击背景关闭
-    modal.querySelector('.modal-backdrop').addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal-backdrop')) {
-            document.body.removeChild(modal);
-        }
-    });
-}
-
-    isNewWord(word) {
-        // 与 prepareStudyQueue 中的逻辑保持一致
-        return !word.reviews || word.reviews.length === 0 || 
-               (word.stage === 0 && word.rememberedCount === 0);
-    }
-
-    incrementTodayLearned(deckName) {
-        const currentLearned = this.getTodayLearnedWords(deckName);
-        this.setTodayLearnedWords(deckName, currentLearned + 1);
+        // 新单词被打乱以避免按固定顺序学习。
+        const shuffledNewWords = shuffleArray(selectedNewWords);
+        
+        return [...selectedReviewWords, ...shuffledNewWords];
     }
     
-// 修改 beginStudySession 方法
-    beginStudySession(selectedDeck, studyQueue) {
-        console.log('开始规律学习会话:', selectedDeck.name, '队列长度:', studyQueue.length);
-        
-        if (studyQueue.length === 0) {
-            alert('今天没有需要学习的单词！\n\n所有单词都已掌握或达到今日学习上限。');
+    /**
+     * 将准备好的学习队列交给主会话管理器。
+     * @param {string} deckName - 词库的名称。
+     * @param {Array<object>} studyQueue - 准备好的待学习单词列表。
+     */
+    beginStudySession(deckName, studyQueue) {
+        if (!studyQueue || studyQueue.length === 0) {
+            console.warn('[RegularStudy] 尝试用空队列开始会话。');
             return;
         }
-        
-        // 确保会话状态重置
-        if (this.dependencies.isSessionActive) {
-            this.dependencies.isSessionActive.value = false;
-        }
-        
-        // 直接调用 startSession
-        this.startSession(selectedDeck.words, selectedDeck.name, true, { precomputedQueue: studyQueue });
-        
-        // 切换到学习页面
-        this.dependencies.updateNavigationState('study-page');
+        // `true` 标志表示这是一个启用 FSRS 的会话。
+        this.startSession(deckName, true, { precomputedQueue: studyQueue });
     }
 
+    /**
+     * 使用特定词库开始一个规律学习会话的主入口点。
+     * @param {string} deckName - 要开始的词库名称。
+     * @returns {Promise<boolean>} 如果会话成功开始则为 true，否则为 false。
+     */
     async startRegularStudyWithDeckName(deckName) {
-        if (!this.vocabularyDecks[deckName]) {
-            console.error(`词库 "${deckName}" 未找到，无法开始规律学习。`);
-            return false; // 返回false表示失败
+        const deckWords = this.vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck === deckName));
+
+        if (!deckWords || deckWords.length === 0) {
+            console.error(`[RegularStudy] 词库 "${deckName}" 未找到或为空。`);
+            return false;
         }
 
-        const selectedDeck = {
-            name: deckName,
-            words: this.vocabularyDecks[deckName]
-        };
-
-        this.currentDeckNameRef.value = selectedDeck.name;
+        this.currentDeckNameRef.value = deckName;
         
-        const studyQueue = await this.prepareStudyQueue(selectedDeck);
+        const studyQueue = await this.prepareStudyQueue(deckWords);
         
         if (studyQueue.length === 0) {
-            console.log(`词库 "${deckName}" 今日无学习内容。`);
-            return false; // 返回false表示没有可学内容
+            console.log(`[RegularStudy] 今天没有 "${deckName}" 的学习内容。`);
+            return false;
         }
 
-        this.beginStudySession(selectedDeck, studyQueue);
-        return true; // 返回true表示成功
+        this.beginStudySession(deckName, studyQueue);
+        return true;
     }
 }
-// 导出初始化函数
-export function setupRegularStudy(dependencies) {
-    return new RegularStudy(dependencies);
+
+/**
+ * 用于创建并异步初始化 RegularStudy 模块实例的工厂函数。
+ * @param {object} dependencies - 来自主应用的依赖项。
+ * @returns {Promise<RegularStudy>} RegularStudy 类的新实例。
+ */
+export async function setupRegularStudy(dependencies) {
+    const module = new RegularStudy(dependencies);
+    await module.loadLearnedToday();
+    await module.loadSettings();
+    return module;
 }

@@ -1,24 +1,30 @@
-// 添加新的页面引用
+/**
+ * @fileoverview 集中管理应用中所有的 DOM 元素选择。
+ * 缓存这些选择可以避免重复查询 DOM，从而提高性能。
+ */
+
+// --- 主要页面 ---
 export const studyPage = document.getElementById('study-page');
 export const decksPage = document.getElementById('decks-page');
 export const settingsPage = document.getElementById('settings-page');
 
-// 更新现有的引用
+// --- 主要屏幕 ---
 export const startScreen = document.getElementById('start-screen');
 export const cardContainer = document.getElementById('card-container');
 export const completionScreen = document.getElementById('completion-screen');
 export const deckSelectionContainer = document.getElementById('deck-selection-container');
+export const skeletonLoader = document.getElementById('skeleton-loader');
 
-// 新增 progressContainer 引用
+// --- 学习卡片元素 ---
 export const progressContainer = document.getElementById('progress-container');
-
-// 添加新的按钮引用
-export const regularStudyBtn = document.getElementById('regular-study-btn');
-
+export const progressBar = document.getElementById('progress-bar');
 export const wordDisplay = document.getElementById('word-display');
 export const answerDisplay = document.getElementById('answer-display');
 export const explanationDisplay = document.getElementById('explanation-display');
+export const definitionToggleContainer = document.getElementById('definition-toggle-container');
 
+// --- 控制按钮 ---
+export const regularStudyBtn = document.getElementById('regular-study-btn');
 export const forgotBtn = document.getElementById('forgot-btn');
 export const hardBtn = document.getElementById('hard-btn'); 
 export const easyBtn = document.getElementById('easy-btn'); 
@@ -27,60 +33,34 @@ export const backToMenuBtn = document.getElementById('back-to-menu-btn');
 export const finishBackToMenuBtn = document.getElementById('finish-back-to-menu-btn');
 export const nextWordInHistoryBtn = document.getElementById('next-word-in-history-btn');
 
-export const progressBar = document.getElementById('progress-bar');
-
+// --- 导入/导出 ---
 export const fileInput = document.getElementById('file-input');
 export const importBtn = document.getElementById('import-btn');
 
+// --- 设置与数据管理 ---
 export const viewStatsBtn = document.getElementById('view-stats-btn');
 export const exportBackupBtn = document.getElementById('export-backup-btn');
 export const importBackupBtn = document.getElementById('import-backup-btn');
 export const checkStorageBtn = document.getElementById('check-storage-btn');
-export const clearDataBtn = document.getElementById('clear-data-btn');
-
+export const openClearDataModalBtn = document.getElementById('open-clear-data-modal-btn');
 export const modeRadioButtons = document.querySelectorAll('input[name="mode"]');
+export const dailyReviewWordsInput = document.getElementById('daily-review-words');
+export const dailyNewWordsInput = document.getElementById('daily-new-words');
+export const nightModeToggle = document.getElementById('night-mode-toggle');
 
+// --- 主动回忆模式 ---
 export const recallSetting = document.getElementById('recall-setting');
 export const recallOverlay = document.getElementById('recall-overlay');
 export const timerCountdown = document.querySelector('.timer-countdown');
 
-export const dailyReviewWordsInput = document.getElementById('daily-review-words');
-export const dailyNewWordsInput = document.getElementById('daily-new-words');
-
+// --- 模态框与通知 ---
 export const notificationContainer = document.getElementById('notification-container');
-
-export const nightModeToggle = document.getElementById('night-mode-toggle');
-
-
-// 确保所有必需的DOM元素都存在
-export function validateDOMElements() {
-    const elements = {
-        studyPage: document.getElementById('study-page'),
-        decksPage: document.getElementById('decks-page'),
-        settingsPage: document.getElementById('settings-page'),
-        startScreen: document.getElementById('start-screen'),
-        cardContainer: document.getElementById('card-container'),
-        completionScreen: document.getElementById('completion-screen'),
-        progressContainer: document.getElementById('progress-container'),
-        progressBar: document.getElementById('progress-bar'),
-        wordDisplay: document.getElementById('word-display'),
-        answerDisplay: document.getElementById('answer-display'),
-        explanationDisplay: document.getElementById('explanation-display'),
-        forgotBtn: document.getElementById('forgot-btn'),
-        hardBtn: document.getElementById('hard-btn'),
-        easyBtn: document.getElementById('easy-btn'),
-        prevBtn: document.getElementById('prev-btn'),
-        backToMenuBtn: document.getElementById('back-to-menu-btn'),
-        finishBackToMenuBtn: document.getElementById('finish-back-to-menu-btn'),
-        nextWordInHistoryBtn: document.getElementById('next-word-in-history-btn')
-    };
-    
-    console.log('DOM元素验证:', elements);
-    return elements;
-}
-
-// 统计模态框
 export const statsModal = document.getElementById('stats-modal');
 export const statsModalTitle = document.getElementById('stats-modal-title');
 export const statsModalBody = document.getElementById('stats-modal-body');
 export const statsModalCloseBtn = document.getElementById('stats-modal-close-btn');
+export const clearDataModal = document.getElementById('clear-data-modal');
+export const executeClearDataBtn = document.getElementById('execute-clear-data-btn');
+export const continueSessionModal = document.getElementById('continue-session-modal');
+export const confirmContinueBtn = document.getElementById('confirm-continue-btn');
+export const declineContinueBtn = document.getElementById('decline-continue-btn');

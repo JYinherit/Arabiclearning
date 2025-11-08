@@ -25,8 +25,34 @@ body {
 }
 
 .page.active {
-    display: block;
-    animation: fadeIn 0.3s ease-in;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .page.active {
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    .import-message {
+        animation: fadeInDown 0.5s;
+    }
+
+    #completion-screen {
+        animation: bounceIn 0.5s ease-out;
+    }
+
+    .timer-progress {
+        animation: countdown 5s linear forwards;
+    }
+
+    .skeleton-item {
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    .nav-btn, .btn, .flashcard, .settings-section, .feature-section, #mode-selection-container label, .online-lexicon-item, .definition-toggle-btn, #import-modal .close-button, .slider {
+        transition: all 0.3s ease;
+    }
 }
 
 @keyframes fadeIn {
@@ -84,7 +110,6 @@ body {
     padding: 0.5rem;
     color: #666;
     font-size: 0.8rem;
-    transition: all 0.3s ease;
     cursor: pointer;
     flex: 1;
 }
@@ -147,7 +172,6 @@ body {
 
 .btn:active {
     transform: scale(0.98);
-    transition: transform 0.1s ease;
 }
 
 .btn:disabled {
@@ -180,7 +204,6 @@ body {
     max-width: 90%;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    animation: fadeInDown 0.5s;
 }
 
 .import-success {
@@ -205,7 +228,6 @@ body {
     text-align: center;
     text-decoration: none;
     cursor: pointer;
-    transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     font-family: 'Noto Sans SC', sans-serif;
 }
@@ -243,7 +265,7 @@ body {
 }
 
 .settings-btn.danger {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); /* 统一危险操作按钮颜色 */
+    background: linear-gradient(135deg, #e10a0a 0%, #eb1a0f 100%); /* 统一危险操作按钮颜色 */
 }
 
 /* 词库按钮样式 */
@@ -271,7 +293,6 @@ body {
     padding: 1rem;
     min-height: 70vh;
     opacity: 1;
-    transition: opacity 0.3s ease;
     display: flex;
     flex-direction: column;
     align-items: center; /* 居中卡片 */
@@ -297,7 +318,6 @@ body {
     line-height: 24px;
     font-weight: bold;
     font-size: 0.9rem;
-    transition: width 0.5s ease;
 }
 
 /* 闪卡样式 */
@@ -315,7 +335,7 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    contain: content;
 }
 
 .flashcard:hover {
@@ -338,7 +358,8 @@ body {
     padding: 1rem;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
     border-radius: 12px;
-    border: 2px dashed #dee2e6;
+    outline: 2px dashed #dee2e6;
+    outline-offset: -2px;
 }
 
 #answer-wrapper {
@@ -363,7 +384,6 @@ body {
     padding: 1.5rem;
     border-radius: 12px;
     cursor: pointer;
-    transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
 }
@@ -554,6 +574,7 @@ body {
     max-height: 80vh;
     overflow-y: auto;
     margin: 1rem;
+    contain: content;
 }
 
 /* 闪卡出现动画 */
@@ -581,7 +602,6 @@ body {
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     border-left: 5px solid #667eea; /* 强调色左边框 */
-    transition: box-shadow 0.3s ease;
 }
 
 .settings-section:hover,
@@ -654,7 +674,6 @@ body {
     cursor: pointer;
     font-weight: 600;
     color: #495057;
-    transition: all 0.2s ease;
     border-radius: 6px;
     position: relative;
 }
@@ -729,7 +748,6 @@ body {
     margin-top: 2rem;
     box-shadow: 0 8px 20px rgba(0, 150, 136, 0.2);
     display: none; /* 默认隐藏，通过 JS 控制显示 */
-    animation: bounceIn 0.5s ease-out;
 }
 
 #completion-screen h2 {
@@ -876,7 +894,6 @@ body {
     stroke-width: 10;
     stroke-dasharray: 283; /* 2 * PI * 45 */
     stroke-dashoffset: 283;
-    animation: countdown 5s linear forwards;
 }
 
 .timer-countdown {
@@ -1132,8 +1149,6 @@ body.night-mode {
     right: 0;
     bottom: 0;
     background-color: #ccc;
-    -webkit-transition: .4s;
-    transition: .4s;
 }
 
 .slider:before {
@@ -1144,8 +1159,6 @@ body.night-mode {
     left: 4px;
     bottom: 4px;
     background-color: white;
-    -webkit-transition: .4s;
-    transition: .4s;
 }
 
 input:checked + .slider {
@@ -1170,3 +1183,383 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
+/* 数据清除模态框样式 */
+#clear-data-modal .modal-content {
+    text-align: left;
+}
+
+#clear-data-modal h2 {
+    color: #db1818;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#clear-data-form {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.checkbox-container {
+    display: block;
+    position: relative;
+    padding-left: 35px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    user-select: none;
+    background-color: #f7f9fc;
+    padding: 1rem 1rem 1rem 35px;
+    border-radius: 8px;
+    border: 1px solid #e0e6ed;
+}
+
+.night-mode .checkbox-container {
+    background-color: #3a3a3a;
+    border-color: #555;
+}
+
+.checkbox-container input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    height: 22px;
+    width: 22px;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.night-mode .checkmark {
+    background-color: #555;
+    border-color: #777;
+}
+
+.checkbox-container:hover input ~ .checkmark {
+    background-color: #ccc;
+}
+
+.checkbox-container input:checked ~ .checkmark {
+    background-color: #d32f2f;
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.checkbox-container .checkmark:after {
+    left: 7px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+}
+
+.checkbox-container small {
+    display: block;
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 4px;
+}
+
+.night-mode .checkbox-container small {
+    color: #a0a0a0;
+}
+
+#clear-data-modal .modal-footer {
+    margin-top: 2rem;
+    text-align: right;
+}
+
+#execute-clear-data-btn {
+    background: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
+}
+
+
+
+/* 在线导入模态框样式 */
+#import-modal .modal-content {
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    position: relative;
+}
+
+#import-modal .close-button {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 2rem;
+    color: #aaa;
+    cursor: pointer;
+}
+
+#import-modal .close-button:hover {
+    color: #333;
+}
+
+.night-mode #import-modal .close-button:hover {
+    color: #fff;
+}
+
+#import-modal h2 {
+    margin-top: 0;
+    color: #2d3748;
+}
+
+.night-mode #import-modal h2 {
+    color: #e0e0e0;
+}
+
+.modal-subtitle {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
+}
+
+.night-mode .modal-subtitle {
+    color: #a0a0a0;
+}
+
+#online-lexicon-list {
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+    text-align: left;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.night-mode #online-lexicon-list {
+    border-color: #444;
+}
+
+.online-lexicon-item {
+    padding: 1rem 1.5rem;
+    background-color: #f7f9fc;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    cursor: pointer;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.online-lexicon-item:hover {
+    background-color: #e9ecef;
+    transform: translateX(5px);
+}
+
+.night-mode .online-lexicon-item {
+    background-color: #3a3a3a;
+    color: #d0d0d0;
+}
+
+.night-mode .online-lexicon-item:hover {
+    background-color: #4a4a4a;
+}
+
+#import-modal .modal-footer {
+    margin-top: 1rem;
+}
+
+#import-local-lexicon-btn {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+
+/* 一词多义切换按钮样式 */
+#definition-toggle-container {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.definition-toggle-btn {
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1px solid #dee2e6;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.definition-toggle-btn:hover {
+    background-color: #dee2e6;
+}
+
+.definition-toggle-btn.active {
+    background-color: #667eea;
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 2px 5px rgba(102, 126, 234, 0.4);
+}
+
+.night-mode .definition-toggle-btn {
+    background-color: #4a4a4a;
+    color: #d0d0d0;
+    border-color: #666;
+}
+
+.night-mode .definition-toggle-btn:hover {
+    background-color: #5a5a5a;
+}
+
+
+
+.night-mode .definition-toggle-btn.active {
+
+    background-color: #8a9ff0;
+
+    color: #1a1a1a;
+
+    border-color: #8a9ff0;
+
+}
+
+
+
+/* 新增：模态框通用操作按钮容器 */
+
+.modal-actions {
+
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 1rem;
+
+    margin-top: 1.5rem;
+
+}
+
+
+
+/* 新增：拒绝/次要操作按钮样式 */
+
+.btn.btn-secondary {
+
+    background: #6c757d;
+
+    box-shadow: none;
+
+}
+
+
+
+.night-mode .btn.btn-secondary {
+
+    background: #5a5a5a;
+
+    color: #e0e0e0;
+
+}
+
+/* 新增：骨架屏加载样式 */
+.skeleton-loader {
+    display: none; /* 默认隐藏 */
+    padding: 1.5rem;
+}
+
+.skeleton-item {
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    height: 60px;
+    opacity: 0.6;
+}
+
+.night-mode .skeleton-item {
+    background-color: #3a3a3a;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.6;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .page.active {
+        animation: fadeIn 0.3s ease-in;
+    }
+    .import-message {
+        animation: fadeInDown 0.5s;
+    }
+    #completion-screen {
+        animation: bounceIn 0.5s ease-out;
+    }
+    .timer-progress {
+        animation: countdown 5s linear forwards;
+    }
+    .skeleton-item {
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+    .nav-btn {
+        transition: all 0.3s ease;
+    }
+    .btn {
+        transition: all 0.3s ease;
+    }
+    .btn:active {
+        transition: transform 0.1s ease;
+    }
+    #progress-bar {
+        transition: width 0.5s ease;
+    }
+    .flashcard {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    #answer-display, #explanation-display {
+        transition: all 0.3s ease;
+    }
+    .settings-section, .feature-section {
+        transition: box-shadow 0.3s ease;
+    }
+    #mode-selection-container label {
+        transition: all 0.2s ease;
+    }
+    #import-modal .close-button {
+        transition: color 0.2s;
+    }
+    .online-lexicon-item {
+        transition: background-color 0.2s, transform 0.2s;
+    }
+    .definition-toggle-btn {
+        transition: all 0.2s ease;
+    }
+    .slider {
+        transition: .4s;
+    }
+    .slider:before {
+        transition: .4s;
+    }
+}
