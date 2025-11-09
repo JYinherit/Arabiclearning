@@ -191,7 +191,7 @@ export const clearSessionState = withErrorHandling(async (deckName) => {
  * @param {Array<object>} vocabularyWords - 主词汇数组，用于在清除进度时更新内存状态。
  * @param {Function} [renderCallback] - 可选的回调函数，用于在清除词库后刷新UI。
  */
-export const clearDataGranularly = withErrorHandling(async (options, vocabularyWords, renderCallback) => {
+export const clearDataGranularly = withErrorHandling(async (options, vocabularyWords) => {
     const storesToClear = [];
     if (options.decks) storesToClear.push('decks_v2');
     if (options.progress) storesToClear.push('wordProgress');
@@ -203,19 +203,14 @@ export const clearDataGranularly = withErrorHandling(async (options, vocabularyW
         await dbManager.clearStores(storesToClear);
     }
 
-    // 如果清除词库，则重置内存中的词汇数组并刷新 UI。
+    // Bug 修复：移除 UI 渲染回调和页面重载。
+    // 现在将由调用者（在 main.js 中）负责更新 UI，以实现更快的反馈。
     if (options.decks) {
-        vocabularyWords.length = 0;
-        if (renderCallback) renderCallback();
+        vocabularyWords.length = 0; // 保持内存状态同步
     }
-
-    // 如果清除统计数据，则调用 stats 模块中的重置函数来清理内存中的统计数据和单词的 firstLearnedDate。
     if (options.stats) {
-        await stats.resetStats(vocabularyWords);
+        await stats.resetStats(vocabularyWords); // 重置内存中的统计数据
     }
-    
-    showImportMessage('所选数据已清除！页面即将重新加载。', true);
-    setTimeout(() => location.reload(), 1500);
 }, '清除数据');
 
 /**
