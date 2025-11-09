@@ -294,6 +294,37 @@ function closeModal(modalElement) {
 }
 
 export const openStatsModal = () => openModal(dom.statsModal);
+
+/**
+ * Bug 修复：动态渲染学习统计模态框中的内容。
+ * 此函数解决了统计数据只在页面加载时渲染一次的问题，
+ * 确保了每次打开模态框时都能显示最新的统计数据。
+ * @param {Array<object>} statsSummary - 从 stats.js 的 getStatsSummary 生成的数据。
+ */
+export function renderStats(statsSummary) {
+    if (!dom.statsContent) return;
+    dom.statsContent.innerHTML = ''; // 清空现有内容
+
+    statsSummary.forEach(category => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'stats-category';
+
+        const categoryTitle = document.createElement('h3');
+        categoryTitle.textContent = category.category;
+        categoryDiv.appendChild(categoryTitle);
+
+        const statsList = document.createElement('ul');
+        category.stats.forEach(stat => {
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `<strong>${stat.label}:</strong> ${stat.value}`;
+            statsList.appendChild(listItem);
+        });
+
+        categoryDiv.appendChild(statsList);
+        dom.statsContent.appendChild(categoryDiv);
+    });
+}
+
 export const closeStatsModal = () => closeModal(dom.statsModal);
 export const openClearDataModal = () => openModal(dom.clearDataModal);
 export const closeClearDataModal = () => closeModal(dom.clearDataModal);

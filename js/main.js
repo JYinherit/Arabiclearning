@@ -333,7 +333,11 @@ function setupEventListeners() {
     });
 
     // 监听数据管理按钮的点击。
-    dom.viewStatsBtn.addEventListener('click', () => ui.openStatsModal(stats.getStatsSummary(vocabularyWords)));
+    dom.viewStatsBtn.addEventListener('click', () => {
+        const summary = stats.getStatsSummary(vocabularyWords);
+        ui.renderStats(summary); // Bug 修复：在打开模态框前渲染最新的统计数据。
+        ui.openStatsModal();
+    });
     dom.statsModalCloseBtn.addEventListener('click', ui.closeStatsModal);
     dom.exportBackupBtn.addEventListener('click', storage.exportAllDataToFile);
     dom.importBackupBtn.addEventListener('click', storage.importBackupFile);
@@ -357,8 +361,19 @@ function setupEventListeners() {
                 return;
             }
             if (confirm('此操作不可逆，确定要清除所选数据吗？')) {
-                await storage.clearDataGranularly(options, vocabularyWords, renderDeckSelection);
+                await storage.clearDataGranularly(options, vocabularyWords);
                 ui.closeClearDataModal();
+                ui.showImportMessage('所选数据已清除！', true);
+
+                // Bug 修复：清除数据后手动重新渲染 UI，而不是依赖页面重载。
+                // 这提供了更即时的反馈，并解决了 UI 状态与数据库不同步的问题。
+                if (options.decks) {
+                    renderDeckSelection();
+                }
+                if (options.settings) {
+                    await ui.initSettingsUI();
+                }
+                // 无需特别处理统计数据，因为它们只在模态框中显示。
             }
         });
     }
@@ -398,6 +413,13 @@ function switchToPage(pageId) {
     if (targetPage) {
         targetPage.classList.add('active');
     }
+
+    // Bug 修复：如果切换到学习页面且会话正在进行中，确保卡片容器是可见的。
+    // 这解决了从其他页面（如设置）导航回学习页面时卡片消失的问题。
+    if (pageId === 'study-page' && isSessionActiveRef.value) {
+        ui.showScreen(dom.cardContainer);
+    }
+
     updateNavigationState(pageId);
 }
 
