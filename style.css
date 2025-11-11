@@ -1048,6 +1048,11 @@ body.night-mode {
     color: white;
 }
 
+.night-mode .settings-btn.danger {
+    background: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
+    color: white;
+}
+
 .night-mode .deck-btn {
     background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
     color: #1a1a1a;
