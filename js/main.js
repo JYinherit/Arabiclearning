@@ -161,6 +161,38 @@ function initializeNewSessionWithQueue(precomputedQueue) {
 }
 
 /**
+ * 专为“规律学习”设计，直接从一个预先计算好的队列开始会话。
+ * 这个函数绕过了词库过滤和会话恢复逻辑，直接启动UI。
+ * @param {string} deckName - 要用于显示和状态保存的会话名称。
+ * @param {boolean} enableFsrs - 始终为 true，表示这是一个 FSRS 会话。
+ * @param {object} options - 包含 precomputedQueue 的选项对象。
+ */
+export async function startSessionFromPrecomputedQueue(deckName, enableFsrs, options) {
+    if (!options || !options.precomputedQueue || options.precomputedQueue.length === 0) {
+        console.error('[Main] 尝试用一个空的预计算队列来开始会话。');
+        ui.showImportMessage('今天没有可学习的内容。', false);
+        return;
+    }
+
+    console.log(`[Main] 开始一个预计算的会话: "${deckName}"`);
+    await stats.onSessionStart();
+
+    // 对于预计算的会话，activeWords 就是队列本身。
+    initialize(options.precomputedQueue);
+    currentDeckNameRef.value = deckName;
+    storage.saveSetting(STORAGE_KEYS.LAST_ACTIVE_DECK, deckName);
+
+    // 直接初始化新会话，不检查已保存的会话。
+    initializeNewSessionWithQueue(options.precomputedQueue);
+
+    sessionStartDate = new Date().toDateString();
+    isSessionActiveRef.value = true;
+    switchToPage('study-page');
+    ui.showScreen(dom.cardContainer);
+    showNextWord();
+}
+
+/**
  * 通过获取当前词库的所有到期单词来初始化新会话。
  * @param {Array} vocabulary - 当前活动词库中的单词。
  */
@@ -475,44 +507,33 @@ function showManualDeckSelection() {
 }
 
 /**
- * 触发一次规律学习。会尝试根据上一个活动词库或到期单词最多的词库来自动开始一个学习会话。
+ * 触发一次全局的规律学习会话。
  * @param {boolean} [isManualTrigger=false] - 是否由用户手动触发。
  */
 async function triggerRegularStudy(isManualTrigger = false) {
     if (!regularStudyModule) {
+        console.warn('[Main] 规律学习模块未初始化，回退到手动选择。');
         showManualDeckSelection();
         return;
     }
 
-    console.log('[Main] 尝试开始规律学习...');
-    const lastDeckName = await storage.getSetting(STORAGE_KEYS.LAST_ACTIVE_DECK, null);
-    if (lastDeckName) {
-        const success = await regularStudyModule.startRegularStudyWithDeckName(lastDeckName);
-        if (success) {
-            console.log(`[Main] 已开始上一个活动词库: ${lastDeckName}`);
-            return;
-        }
-    }
+    try {
+        console.log('[Main] 尝试开始全局规律学习...');
+        const success = await regularStudyModule.startGlobalRegularStudy();
 
-    console.log('[Main] 正在寻找拥有最多到期单词的最佳词库...');
-    const deckStats = await regularStudyModule.getAllDecksProgressStats();
-    if (deckStats.length > 0) {
-        deckStats.sort((a, b) => b.dueCount - a.dueCount);
-        const bestDeckName = deckStats[0].deckName;
-        if (deckStats[0].dueCount > 0) {
-            const success = await regularStudyModule.startRegularStudyWithDeckName(bestDeckName);
-            if (success) {
-                console.log(`[Main] 已开始最佳词库: ${bestDeckName}`);
-                return;
-            }
+        if (!success && isManualTrigger) {
+            ui.showImportMessage('太棒了，今天没有需要复习或学习的单词！', true);
+        } else if (!success) {
+            // 如果是自动触发且无内容可学，则显示手动选择界面
+            showManualDeckSelection();
         }
-    }
-
-    // 如果没有找到合适的词库进行自动开始
-    if (isManualTrigger) {
-        ui.showImportMessage('太棒了，今天没有需要复习的单词！', true);
-    } else {
-        showManualDeckSelection();
+    } catch (error) {
+        console.error('[Main] 开始规律学习时出错:', error);
+        if (isManualTrigger) {
+            ui.showImportMessage('开始学习时发生错误。', false);
+        } else {
+            showManualDeckSelection();
+        }
     }
 }
 
@@ -546,7 +567,7 @@ window.onload = async () => {
 
     regularStudyModule = await setupRegularStudy({
         vocabularyWords,
-        startSession,
+        startSession: startSessionFromPrecomputedQueue, // 将规律学习的启动指向新函数
         currentDeckNameRef,
         isSessionActiveRef
     });
