@@ -56,7 +56,7 @@ function initialize(vocabulary) {
  */
 async function startSession(deckName, enableFsrs = false, options = {}) {
     // 从全局词汇中筛选出所选词库的单词。
-    const deckWords = vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck === deckName));
+    const deckWords = vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck.startsWith(deckName)));
     console.log(`[Main] 开始词库会话: "${deckName}", 找到单词数: ${deckWords.length}`);
     
     await stats.onSessionStart();
@@ -249,23 +249,38 @@ async function updateAndSaveSessionState() {
  */
 function renderDeckSelection() {
     if (dom.skeletonLoader) dom.skeletonLoader.style.display = 'none';
-    // 按 sourceDeck 对单词进行分组，为 UI 创建一个虚拟的词库结构。
-    const decks = vocabularyWords.reduce((acc, word) => {
+
+    const collections = vocabularyWords.reduce((acc, word) => {
         word.definitions.forEach(def => {
-            if (!acc[def.sourceDeck]) {
-                acc[def.sourceDeck] = [];
+            const [collectionName, deckName] = def.sourceDeck.split('//');
+            if (!acc[collectionName]) {
+                acc[collectionName] = { subDecks: {}, words: new Set() };
             }
-            acc[def.sourceDeck].push(word);
+            if (!acc[collectionName].subDecks[deckName]) {
+                acc[collectionName].subDecks[deckName] = new Set();
+            }
+            acc[collectionName].subDecks[deckName].add(word);
+            acc[collectionName].words.add(word);
         });
         return acc;
     }, {});
-    
-    // 确保每个词库只包含唯一的单词。
-    for (const deckName in decks) {
-        decks[deckName] = [...new Set(decks[deckName])];
+
+    // 将 Set 转换为数组并计算长度
+    for (const collectionName in collections) {
+        const collection = collections[collectionName];
+        collection.wordCount = collection.words.size;
+        delete collection.words; // 释放内存
+
+        for (const deckName in collection.subDecks) {
+            const wordSet = collection.subDecks[deckName];
+            collection.subDecks[deckName] = {
+                words: Array.from(wordSet),
+                wordCount: wordSet.size
+            };
+        }
     }
 
-    ui.setupSelectionScreen(decks, startSession);
+    ui.setupSelectionScreen(collections, startSession);
     ui.showScreen(dom.startScreen);
 }
 
@@ -326,7 +341,9 @@ function setupEventListeners() {
     // 监听文件导入事件。
     dom.importBtn.addEventListener('click', () => dom.fileInput.click());
     dom.fileInput.addEventListener('change', (event) => {
-        handleFileImport(event, vocabularyWords,
+        handleFileImport(
+            event,
+            vocabularyWords,
             renderDeckSelection,
             () => storage.saveDecksToStorage(vocabularyWords)
         );

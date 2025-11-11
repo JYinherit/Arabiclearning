@@ -76,6 +76,7 @@ export async function handleFileImport(event, vocabularyWords, renderDeckSelecti
         if (fileInput) fileInput.value = ''; // 重置文件输入框
         return;
     }
+    const fileName = file.name;
 
     const reader = new FileReader();
 
@@ -112,7 +113,7 @@ export async function handleFileImport(event, vocabularyWords, renderDeckSelecti
                         id: `def_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                         chinese: importedWord.chinese,
                         explanation: importedWord.explanation || '暂无解释',
-                        sourceDeck: deckName
+                        sourceDeck: `${fileName}//${deckName}`
                     };
 
                     // --- 智能合并逻辑 ---
