@@ -409,7 +409,7 @@ export async function initSettingsUI() {
         [STORAGE_KEYS.RECALL_MODE]: false,
         [STORAGE_KEYS.DAILY_REVIEW_WORDS]: 30,
         [STORAGE_KEYS.DAILY_NEW_WORDS]: 10,
-        [STORAGE_KEYS.NIGHT_MODE]: false,
+        [STORAGE_KEYS.THEME]: 'default',
     };
 
     for (const key in settings) {
@@ -421,9 +421,11 @@ export async function initSettingsUI() {
     if (dom.recallSetting) dom.recallSetting.checked = settings[STORAGE_KEYS.RECALL_MODE];
     if (dom.dailyReviewWordsInput) dom.dailyReviewWordsInput.value = settings[STORAGE_KEYS.DAILY_REVIEW_WORDS];
     if (dom.dailyNewWordsInput) dom.dailyNewWordsInput.value = settings[STORAGE_KEYS.DAILY_NEW_WORDS];
-    if (dom.nightModeToggle) {
-        dom.nightModeToggle.checked = settings[STORAGE_KEYS.NIGHT_MODE];
-        toggleNightMode(settings[STORAGE_KEYS.NIGHT_MODE]);
+
+    const themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+        themeSelect.value = settings[STORAGE_KEYS.THEME];
+        applyTheme(settings[STORAGE_KEYS.THEME]);
     }
 }
 
@@ -451,10 +453,10 @@ export function setupSettingsListeners() {
         } else if (target.matches('#daily-new-words')) {
             key = STORAGE_KEYS.DAILY_NEW_WORDS;
             value = parseInt(target.value, 10) || 10;
-        } else if (target.matches('#night-mode-toggle')) {
-            key = STORAGE_KEYS.NIGHT_MODE;
-            value = target.checked;
-            callback = toggleNightMode;
+        } else if (target.matches('#theme-select')) {
+            key = STORAGE_KEYS.THEME;
+            value = target.value;
+            callback = applyTheme;
         }
 
         if (key !== null) {
@@ -467,9 +469,12 @@ export function setupSettingsListeners() {
 }
 
 /**
- * 在文档 body 上切换夜间模式类。
- * @param {boolean} enabled - 是否启用夜间模式。
+ * 在文档 body 上应用选定的主题类。
+ * @param {string} themeName - 要应用的主题名称。
  */
-export function toggleNightMode(enabled) {
-    document.body.classList.toggle('night-mode', enabled);
+export function applyTheme(themeName) {
+    document.body.className = ''; // 清除所有现有类
+    if (themeName !== 'default') {
+        document.body.classList.add(`theme-${themeName}`);
+    }
 }
