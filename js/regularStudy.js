@@ -168,49 +168,127 @@ export class RegularStudy {
         return stats;
     }
 
+
     /**
-     * 为给定的一组词库单词准备一个优先的学习队列。
-     * 队列由到期的复习单词和有限数量的新单词组成。
-     * @param {Array<object>} deckWords - 属于正在学习的词库的单词。
-     * @returns {Promise<Array<object>>} 经过优先级排序和打乱的学习队列。
+     * 为所有词库准备一个全局学习队列。
+     * 该函数首先将所有单词分为三类：到期、新、未到期。
+     * 然后，它将根据我们定义的逻辑构建最终的学习队列。
+     * @returns {Promise<{dueReviewWords: Array, newWords: Array, notDueWords: Array}>} 一个包含所有分类后单词的对象。
      */
-    async prepareStudyQueue(deckWords) {
-        await this.loadSettings(); // 每次准备队列时重新加载设置，以确保使用的是最新值。
-        const arabicKeys = deckWords.map(w => w.arabic);
+    async prepareStudyQueue() {
+        await this.loadSettings(); // 确保设置是最新的
+
+        const allWords = this.vocabularyWords;
+        const arabicKeys = allWords.map(w => w.arabic);
         const progressMap = await dbManager.getWordProgressBatch(arabicKeys);
-        const wordsWithProgress = deckWords.map(word => {
+
+        const wordsWithProgress = allWords.map(word => {
             const savedProgress = progressMap.get(word.arabic);
             return savedProgress ? { ...word, progress: savedProgress } : this.scheduler.initializeWord(word);
         });
-        
-        // 分离到期复习词和新词
-        const reviewWords = wordsWithProgress.filter(word => 
-            !this.isNewWord(word) && this.scheduler.fsrs.isCardDue(word)
-        );
-        const newWords = wordsWithProgress.filter(word => this.isNewWord(word));
 
-        // 按到期时间对复习词排序
-        reviewWords.sort((a, b) => (a.progress?.dueDate || 0) - (b.progress?.dueDate || 0));
-        
-        // 1. 优先处理复习单词，最多不超过设定的上限。
-        const selectedReviewWords = reviewWords.slice(0, this.settings.maxReviewWords);
+        const dueReviewWords = [];
+        const newWords = [];
+        const notDueWords = [];
 
-        // 2. 计算今天还可以学习多少新单词。
-        const learnedTodayCount = this.getTodayLearnedWords(this.currentDeckNameRef.value);
-        const newWordsDailyQuota = Math.max(0, this.settings.dailyNewWords - learnedTodayCount);
+        for (const word of wordsWithProgress) {
+            if (this.isNewWord(word)) {
+                newWords.push(word);
+            } else if (this.scheduler.fsrs.isCardDue(word)) {
+                dueReviewWords.push(word);
+            } else {
+                notDueWords.push(word);
+            }
+        }
 
-        // 3. 新单词不应使当前会话的总数超过复习上限。
-        const remainingSessionCapacity = Math.max(0, this.settings.maxReviewWords - selectedReviewWords.length);
+        // 按到期时间对复习词进行排序，最先到期的排在前面
+        dueReviewWords.sort((a, b) => (a.progress?.dueDate || 0) - (b.progress?.dueDate || 0));
 
-        // 4. 要添加的新单词数取所有约束条件下的最小值。
-        const numberOfNewWordsToAdd = Math.min(newWords.length, newWordsDailyQuota, remainingSessionCapacity);
-        
-        const selectedNewWords = newWords.slice(0, numberOfNewWordsToAdd);
+        return { dueReviewWords, newWords, notDueWords };
+    }
 
-        // 新单词被打乱以避免按固定顺序学习。
-        const shuffledNewWords = shuffleArray(selectedNewWords);
-        
-        return [...selectedReviewWords, ...shuffledNewWords];
+    /**
+     * 根据“三重随机”原则（随机集合 -> 随机词库 -> 随机单词）生成一个打乱顺序的学习队列。
+     * @param {Array<object>} wordsToShuffle - 需要打乱顺序的单词数组。
+     * @returns {Array<object>} 一个包含了所有输入单词的、被打乱顺序的新数组。
+     */
+    _generateTripleRandomQueue(wordsToShuffle) {
+        if (!wordsToShuffle || wordsToShuffle.length === 0) {
+            return [];
+        }
+
+        // 步骤 1: 构建 Collection -> Deck -> [Words] 的嵌套结构
+        const collections = new Map();
+        for (const word of wordsToShuffle) {
+            for (const def of word.definitions) {
+                const [collectionName, deckName] = def.sourceDeck.split('//');
+
+                if (!collections.has(collectionName)) {
+                    collections.set(collectionName, new Map());
+                }
+                const decksMap = collections.get(collectionName);
+                if (!decksMap.has(deckName)) {
+                    decksMap.set(deckName, []);
+                }
+                decksMap.get(deckName).push(word);
+            }
+        }
+
+        const shuffledQueue = [];
+        const pickedWords = new Set(); // 用于跟踪已选中的单词，确保唯一性
+        let remainingWordsCount = wordsToShuffle.length;
+
+        // 步骤 2: 循环随机抽取，直到所有单词都被选中
+        while (remainingWordsCount > 0) {
+            // 2a: 随机选择一个集合
+            const availableCollections = Array.from(collections.keys());
+            if (availableCollections.length === 0) break; // 所有集合都空了，提前退出
+            const randomCollectionName = availableCollections[Math.floor(Math.random() * availableCollections.length)];
+            const decksMap = collections.get(randomCollectionName);
+
+            // 2b: 随机选择一个词库
+            const availableDecks = Array.from(decksMap.keys());
+            if (availableDecks.length === 0) {
+                collections.delete(randomCollectionName); // 这个集合已经空了，删除并重试
+                continue;
+            }
+            const randomDeckName = availableDecks[Math.floor(Math.random() * availableDecks.length)];
+            const wordsInDeck = decksMap.get(randomDeckName);
+
+            // 2c: 随机选择一个单词
+            if (wordsInDeck.length === 0) {
+                decksMap.delete(randomDeckName); // 这个词库已经空了，删除并重试
+                if (decksMap.size === 0) collections.delete(randomCollectionName);
+                continue;
+            }
+            const randomIndex = Math.floor(Math.random() * wordsInDeck.length);
+            const pickedWord = wordsInDeck[randomIndex];
+
+            // 步骤 3: 检查唯一性
+            if (pickedWords.has(pickedWord.arabic)) {
+                // 这个单词之前从别的词库被选过了，将它从当前词库移除，然后重试
+                wordsInDeck.splice(randomIndex, 1);
+                if (wordsInDeck.length === 0) {
+                    decksMap.delete(randomDeckName);
+                    if (decksMap.size === 0) collections.delete(randomCollectionName);
+                }
+                continue;
+            }
+
+            // 步骤 4: 添加到队列并更新状态
+            shuffledQueue.push(pickedWord);
+            pickedWords.add(pickedWord.arabic);
+            remainingWordsCount--;
+
+            // 从当前词库数组中移除，避免重复选择
+            wordsInDeck.splice(randomIndex, 1);
+            if (wordsInDeck.length === 0) {
+                decksMap.delete(randomDeckName);
+                if (decksMap.size === 0) collections.delete(randomCollectionName);
+            }
+        }
+
+        return shuffledQueue;
     }
     
     /**
@@ -228,28 +306,51 @@ export class RegularStudy {
     }
 
     /**
-     * 使用特定词库开始一个规律学习会话的主入口点。
-     * @param {string} deckName - 要开始的词库名称。
+     * 开始一个全局的“规律学习”会话。
+     * 这个函数会从所有词库中准备一个学习队列，优先处理到期的复习卡片，
+     * 然后是随机顺序的新卡片（或未到期的卡片，如果没有新卡片的话）。
      * @returns {Promise<boolean>} 如果会话成功开始则为 true，否则为 false。
      */
-    async startRegularStudyWithDeckName(deckName) {
-        const deckWords = this.vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck.startsWith(deckName)));
+    async startGlobalRegularStudy() {
+        const { dueReviewWords, newWords, notDueWords } = await this.prepareStudyQueue();
 
-        if (!deckWords || deckWords.length === 0) {
-            console.error(`[RegularStudy] 词库 "${deckName}" 未找到或为空。`);
+        let wordsForRandomShuffle;
+        let isLearningNew = true;
+
+        if (newWords.length > 0) {
+            wordsForRandomShuffle = newWords;
+        } else {
+            wordsForRandomShuffle = notDueWords;
+            isLearningNew = false;
+        }
+
+        const shuffledPart = this._generateTripleRandomQueue(wordsForRandomShuffle);
+
+        // 应用每日新词和最大复习数的限制
+        const maxReviews = this.settings.maxReviewWords;
+        const dailyNew = this.settings.dailyNewWords;
+
+        const reviewQueue = dueReviewWords.slice(0, maxReviews);
+        
+        const newWordsQuota = isLearningNew ? dailyNew : Infinity; // 如果是复习未到期词，则不应用新词限额
+        const remainingCapacity = Math.max(0, maxReviews - reviewQueue.length);
+        
+        const newPartCount = Math.min(shuffledPart.length, newWordsQuota, remainingCapacity);
+        const newQueue = shuffledPart.slice(0, newPartCount);
+
+        const finalQueue = [...reviewQueue, ...newQueue];
+
+        if (finalQueue.length === 0) {
+            console.log('[RegularStudy] 今天没有可学习的内容。');
+            // 这里可以考虑向用户显示一个消息
             return false;
         }
 
-        this.currentDeckNameRef.value = deckName;
-        
-        const studyQueue = await this.prepareStudyQueue(deckWords);
-        
-        if (studyQueue.length === 0) {
-            console.log(`[RegularStudy] 今天没有 "${deckName}" 的学习内容。`);
-            return false;
-        }
+        // 对于全局学习，我们将 deckName 设为一个通用标签
+        const sessionDeckName = "规律学习";
+        this.currentDeckNameRef.value = sessionDeckName;
+        this.beginStudySession(sessionDeckName, finalQueue);
 
-        this.beginStudySession(deckName, studyQueue);
         return true;
     }
 }
