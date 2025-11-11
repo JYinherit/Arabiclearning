@@ -167,34 +167,64 @@ function initializeNewSessionWithQueue(precomputedQueue) {
 
 /**
  * 专为“规律学习”设计，直接从一个预先计算好的队列开始会话。
- * 这个函数绕过了词库过滤和会话恢复逻辑，直接启动UI。
  * @param {string} deckName - 要用于显示和状态保存的会话名称。
  * @param {boolean} enableFsrs - 始终为 true，表示这是一个 FSRS 会话。
- * @param {object} options - 包含 precomputedQueue 的选项对象。
+ * @param {object} options - 包含 precomputedQueue 和 fullWordList 的选项对象。
  */
 export async function startSessionFromPrecomputedQueue(deckName, enableFsrs, options) {
-    if (!options || !options.precomputedQueue || options.precomputedQueue.length === 0) {
-        console.error('[Main] 尝试用一个空的预计算队列来开始会话。');
-        ui.showImportMessage('今天没有可学习的内容。', false);
+    if (!options || !options.precomputedQueue || !options.fullWordList) {
+        console.error('[Main] 尝试用不完整的选项来开始预计算会话。');
+        ui.showImportMessage('启动学习时发生内部错误。', false);
+        return;
+    }
+    
+    if (options.precomputedQueue.length === 0) {
+        ui.showImportMessage('太棒了，今天没有可学习的内容。', true);
         return;
     }
 
     console.log(`[Main] 开始一个预计算的会话: "${deckName}"`);
     await stats.onSessionStart();
 
-    // 对于预计算的会话，activeWords 就是队列本身。
-    initialize(options.precomputedQueue);
     currentDeckNameRef.value = deckName;
     storage.saveSetting(STORAGE_KEYS.LAST_ACTIVE_DECK, deckName);
 
-    // 直接初始化新会话，不检查已保存的会话。
-    initializeNewSessionWithQueue(options.precomputedQueue);
+    let savedSession = null;
+    try {
+        savedSession = await storage.loadSessionState(deckName);
+    } catch (error) {
+        console.error(`[Main] 恢复会话 "${deckName}" 失败，可能数据已损坏。`, error);
+        ui.showImportMessage('恢复会话失败，将开始新会话。', false);
+        await storage.clearSessionState(deckName);
+    }
 
-    sessionStartDate = new Date().toDateString();
-    isSessionActiveRef.value = true;
-    switchToPage('study-page');
-    ui.showScreen(dom.cardContainer);
-    showNextWord();
+    const start = () => {
+        sessionStartDate = new Date().toDateString();
+        isSessionActiveRef.value = true;
+        switchToPage('study-page');
+        ui.showScreen(dom.cardContainer);
+        showNextWord();
+    };
+
+    if (savedSession) {
+        ui.openContinueSessionModal(
+            () => { // onConfirm: 恢复会话
+                initialize(options.fullWordList); // 使用完整列表初始化
+                restoreSessionState(savedSession);
+                start();
+            },
+            () => { // onDecline: 开始新会话
+                initialize(options.fullWordList); // 使用完整列表初始化
+                initializeNewSessionWithQueue(options.precomputedQueue);
+                start();
+            }
+        );
+    } else {
+        // 没有已保存的会话，开始一个新会话。
+        initialize(options.fullWordList); // 使用完整列表初始化
+        initializeNewSessionWithQueue(options.precomputedQueue);
+        start();
+    }
 }
 
 /**
@@ -346,34 +376,39 @@ function populateAndShowStudyScopeModal() {
     const collections = regularStudyModule.getCollectionsAndDecks();
     regularStudyOptionsContainer.innerHTML = ''; // 清空旧选项
 
-    // 1. 添加全局学习选项
-    const globalOption = document.createElement('div');
-    globalOption.className = 'study-scope-option';
-    globalOption.textContent = '全局学习 (所有词库)';
-    globalOption.dataset.scopeType = 'global';
-    regularStudyOptionsContainer.appendChild(globalOption);
+    const createCheckboxOption = (text, scopeType, scopeName, isCollection = false) => {
+        const label = document.createElement('label');
+        label.className = 'study-scope-option';
+        if (isCollection) {
+            label.classList.add('collection');
+        }
 
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.dataset.scopeType = scopeType;
+        if (scopeName) {
+            checkbox.dataset.scopeName = scopeName;
+        }
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(` ${text}`));
+        return label;
+    };
+
+    // 1. 添加全局学习选项
+    regularStudyOptionsContainer.appendChild(createCheckboxOption('全局学习 (所有词库)', 'global'));
+    
     // 2. 添加分隔符
     regularStudyOptionsContainer.appendChild(document.createElement('hr'));
 
     // 3. 遍历并添加每个集合和词库
     for (const [collectionName, decks] of collections.entries()) {
-        const collectionOption = document.createElement('div');
-        collectionOption.className = 'study-scope-option collection';
-        collectionOption.textContent = collectionName;
-        collectionOption.dataset.scopeType = 'collection';
-        collectionOption.dataset.scopeName = collectionName;
-        regularStudyOptionsContainer.appendChild(collectionOption);
+        regularStudyOptionsContainer.appendChild(createCheckboxOption(collectionName, 'collection', collectionName, true));
 
-        const deckList = document.createElement('ul');
+        const deckList = document.createElement('div');
         deckList.className = 'study-scope-deck-list';
         for (const deckName of decks) {
-            const deckOption = document.createElement('li');
-            deckOption.className = 'study-scope-option deck';
-            deckOption.textContent = deckName;
-            deckOption.dataset.scopeType = 'deck';
-            deckOption.dataset.scopeName = `${collectionName}//${deckName}`;
-            deckList.appendChild(deckOption);
+            deckList.appendChild(createCheckboxOption(deckName, 'deck', `${collectionName}//${deckName}`));
         }
         regularStudyOptionsContainer.appendChild(deckList);
     }
@@ -488,27 +523,42 @@ function setupEventListeners() {
     regularStudyModalCloseBtn.addEventListener('click', () => {
         regularStudyScopeModal.style.display = 'none';
     });
-    regularStudyOptionsContainer.addEventListener('click', async (event) => {
-        const target = event.target.closest('.study-scope-option');
-        if (!target) return;
+    
+    const startBtn = document.getElementById('regular-study-start-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', async () => {
+            const selectedScopes = [];
+            const checkboxes = regularStudyOptionsContainer.querySelectorAll('input[type="checkbox"]:checked');
+            
+            checkboxes.forEach(cb => {
+                selectedScopes.push({
+                    type: cb.dataset.scopeType,
+                    name: cb.dataset.scopeName
+                });
+            });
 
-        const scope = {
-            type: target.dataset.scopeType,
-            name: target.dataset.scopeName
-        };
-
-        regularStudyScopeModal.style.display = 'none';
-
-        try {
-            const success = await regularStudyModule.startScopedStudy(scope);
-            if (!success) {
-                ui.showImportMessage('太棒了，这个范围内今天没有需要复习或学习的单词！', true);
+            if (selectedScopes.length === 0) {
+                ui.showImportMessage('请至少选择一个学习范围。', false);
+                return;
             }
-        } catch (error) {
-            console.error(`[Main] 开始范围学习时出错 (范围: ${scope.type})`, error);
-            ui.showImportMessage('开始学习时发生错误。', false);
-        }
-    });
+
+            // 如果选择了“全局”，则忽略其他选项
+            const globalScope = selectedScopes.find(s => s.type === 'global');
+            const finalScopes = globalScope ? [globalScope] : selectedScopes;
+
+            regularStudyScopeModal.style.display = 'none';
+
+            try {
+                const success = await regularStudyModule.startScopedStudy(finalScopes);
+                if (!success) {
+                    ui.showImportMessage('太棒了，所选范围内今天没有需要复习或学习的单词！', true);
+                }
+            } catch (error) {
+                console.error(`[Main] 开始范围学习时出错`, error);
+                ui.showImportMessage('开始学习时发生错误。', false);
+            }
+        });
+    }
 }
 
 /**

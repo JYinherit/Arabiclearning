@@ -311,37 +311,56 @@ export class RegularStudy {
      * 将准备好的学习队列交给主会话管理器。
      * @param {string} deckName - 词库的名称。
      * @param {Array<object>} studyQueue - 准备好的待学习单词列表。
+     * @param {Array<object>} wordList - 用于此会话的完整单词列表。
      */
-    beginStudySession(deckName, studyQueue) {
+    beginStudySession(deckName, studyQueue, wordList) {
         if (!studyQueue || studyQueue.length === 0) {
             console.warn('[RegularStudy] 尝试用空队列开始会话。');
             return;
         }
         // `true` 标志表示这是一个启用 FSRS 的会话。
-        this.startSession(deckName, true, { precomputedQueue: studyQueue });
+        this.startSession(deckName, true, { 
+            precomputedQueue: studyQueue,
+            fullWordList: wordList 
+        });
     }
 
     /**
      * 开始一个指定范围的“规律学习”会话。
-     * @param {object} scope - 定义学习范围的对象。
-     * @param {'global' | 'collection' | 'deck'} scope.type - 范围类型。
-     * @param {string} [scope.name] - 集合或词库的名称。
+     * @param {Array<object>} scopes - 定义学习范围的对象数组。
      * @returns {Promise<boolean>} 如果会话成功开始则为 true，否则为 false。
      */
-    async startScopedStudy(scope = { type: 'global' }) {
-        let wordList = this.vocabularyWords;
+    async startScopedStudy(scopes = [{ type: 'global' }]) {
+        let wordList = [];
         let sessionDeckName = "规律学习";
 
-        if (scope.type === 'collection') {
-            wordList = this.vocabularyWords.filter(word => 
-                word.definitions.some(def => def.sourceDeck.startsWith(scope.name + '//'))
-            );
-            sessionDeckName = scope.name;
-        } else if (scope.type === 'deck') {
-            wordList = this.vocabularyWords.filter(word => 
-                word.definitions.some(def => def.sourceDeck === scope.name)
-            );
-            sessionDeckName = scope.name.split('//').pop();
+        const globalScope = scopes.find(s => s.type === 'global');
+
+        if (globalScope) {
+            wordList = this.vocabularyWords;
+            sessionDeckName = "全局学习";
+        } else {
+            const selectedWords = new Set();
+            for (const scope of scopes) {
+                let filteredWords = [];
+                if (scope.type === 'collection') {
+                    filteredWords = this.vocabularyWords.filter(word => 
+                        word.definitions.some(def => def.sourceDeck.startsWith(scope.name + '//'))
+                    );
+                } else if (scope.type === 'deck') {
+                    filteredWords = this.vocabularyWords.filter(word => 
+                        word.definitions.some(def => def.sourceDeck === scope.name)
+                    );
+                }
+                filteredWords.forEach(word => selectedWords.add(word));
+            }
+            wordList = Array.from(selectedWords);
+
+            if (scopes.length === 1) {
+                sessionDeckName = scopes[0].type === 'collection' ? scopes[0].name : scopes[0].name.split('//').pop();
+            } else {
+                sessionDeckName = "自定义学习";
+            }
         }
 
         const { dueReviewWords, newWords, notDueWords } = await this.prepareStudyQueue(wordList);
@@ -377,7 +396,7 @@ export class RegularStudy {
         }
 
         this.currentDeckNameRef.value = sessionDeckName;
-        this.beginStudySession(sessionDeckName, finalQueue);
+        this.beginStudySession(sessionDeckName, finalQueue, wordList);
 
         return true;
     }
