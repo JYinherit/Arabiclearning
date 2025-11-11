@@ -125,36 +125,35 @@ export class RegularStudy {
      * @returns {Promise<Array<object>>} 每个词库的统计对象列表。
      */
     async getAllDecksProgressStats() {
-        const decks = this.vocabularyWords.reduce((acc, word) => {
+        const collections = this.vocabularyWords.reduce((acc, word) => {
             word.definitions.forEach(def => {
-                if (!acc[def.sourceDeck]) {
-                    acc[def.sourceDeck] = [];
+                const [collectionName, deckName] = def.sourceDeck.split('//');
+                if (!acc[collectionName]) {
+                    acc[collectionName] = { words: new Set() };
                 }
-                acc[def.sourceDeck].push(word);
+                acc[collectionName].words.add(word);
             });
             return acc;
         }, {});
 
         const now = Date.now();
         const stats = [];
-        for (const deckName in decks) {
-            const cached = this.statsCache.get(deckName);
+        for (const collectionName in collections) {
+            const cached = this.statsCache.get(collectionName);
             if (cached && (now - cached.timestamp < this.CACHE_TTL)) {
                 stats.push(cached.data);
-                continue; // 使用缓存数据
+                continue;
             }
 
-            // 如果没有缓存或已过期，则计算统计数据
-            const deckWords = [...new Set(decks[deckName])];
-            const deckStats = await this.getDeckProgressStats(deckWords);
+            const collectionWords = Array.from(collections[collectionName].words);
+            const collectionStats = await this.getDeckProgressStats(collectionWords);
             const finalStats = {
-                deckName,
-                dueCount: deckStats.review + deckStats.new,
-                ...deckStats
+                deckName: collectionName, // Use collectionName as the identifier
+                dueCount: collectionStats.review + collectionStats.new,
+                ...collectionStats
             };
 
-            // 存入缓存
-            this.statsCache.set(deckName, {
+            this.statsCache.set(collectionName, {
                 timestamp: now,
                 data: finalStats
             });
@@ -234,7 +233,7 @@ export class RegularStudy {
      * @returns {Promise<boolean>} 如果会话成功开始则为 true，否则为 false。
      */
     async startRegularStudyWithDeckName(deckName) {
-        const deckWords = this.vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck === deckName));
+        const deckWords = this.vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck.startsWith(deckName)));
 
         if (!deckWords || deckWords.length === 0) {
             console.error(`[RegularStudy] 词库 "${deckName}" 未找到或为空。`);

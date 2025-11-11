@@ -223,15 +223,54 @@ export function hideRecallOverlay() {
  * @param {object} decks - 一个对象，键是词库名，值是单词数组。
  * @param {Function} startSessionCallback - 当选择一个词库时触发的回调函数。
  */
-export function setupSelectionScreen(decks, startSessionCallback) {
-    dom.deckSelectionContainer.innerHTML = '';
-    Object.keys(decks).forEach(deckName => {
-        const button = document.createElement('button');
-        button.textContent = `${deckName} (${decks[deckName].length}词)`;
-        button.className = 'btn deck-btn';
-        button.disabled = decks[deckName].length === 0;
-        button.onclick = () => startSessionCallback(deckName, false);
-        dom.deckSelectionContainer.appendChild(button);
+export function setupSelectionScreen(collections, startSessionCallback) {
+    dom.deckSelectionContainer.innerHTML = ''; // 清空容器
+
+    Object.keys(collections).forEach(collectionName => {
+        const collection = collections[collectionName];
+
+        // 创建一个 <details> 元素作为可折叠的容器
+        const details = document.createElement('details');
+        details.className = 'collection-container';
+
+        // 创建 <summary> 作为集合的头部和切换器
+        const summary = document.createElement('summary');
+        summary.className = 'collection-header';
+
+        const title = document.createElement('span');
+        title.textContent = `${collectionName} (${collection.wordCount}词)`;
+        summary.appendChild(title);
+
+        const studyButton = document.createElement('button');
+        studyButton.textContent = '学习此集合';
+        studyButton.className = 'btn btn-small';
+        studyButton.onclick = (e) => {
+            e.preventDefault(); // 阻止 <details> 折叠/展开
+            startSessionCallback(collectionName, false);
+        };
+        summary.appendChild(studyButton);
+
+        details.appendChild(summary);
+
+        // 为该集合下的每个子词库创建按钮
+        const subDecksContainer = document.createElement('div');
+        subDecksContainer.className = 'sub-decks-container';
+
+        for (const deckName in collection.subDecks) {
+            const subDeck = collection.subDecks[deckName];
+            const button = document.createElement('button');
+            button.textContent = `${deckName} (${subDeck.wordCount}词)`;
+            button.className = 'btn deck-btn';
+            button.disabled = subDeck.wordCount === 0;
+            button.onclick = () => {
+                const fullDeckIdentifier = `${collectionName}//${deckName}`;
+                startSessionCallback(fullDeckIdentifier, false);
+            };
+            subDecksContainer.appendChild(button);
+        }
+
+        details.appendChild(subDecksContainer);
+        dom.deckSelectionContainer.appendChild(details);
     });
 }
 
