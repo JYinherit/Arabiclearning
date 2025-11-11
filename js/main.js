@@ -37,6 +37,11 @@ let sessionStartDate = null; // 当前会话开始的日期，用于统计。
 const scheduler = new ReviewScheduler(); // FSRS 记忆调度器实例。
 let regularStudyModule = null; // “规律学习”功能的模块实例。
 
+// --- 新增：规律学习模态框DOM引用 ---
+const regularStudyScopeModal = document.getElementById('regular-study-scope-modal');
+const regularStudyOptionsContainer = document.getElementById('regular-study-options-container');
+const regularStudyModalCloseBtn = regularStudyScopeModal.querySelector('.close-button');
+
 
 /**
  * 为当前会话准备一份词汇的深拷贝。
@@ -333,6 +338,51 @@ async function goBackToMenu() {
 }
 
 /**
+ * 填充并显示规律学习范围选择模态框。
+ */
+function populateAndShowStudyScopeModal() {
+    if (!regularStudyModule) return;
+
+    const collections = regularStudyModule.getCollectionsAndDecks();
+    regularStudyOptionsContainer.innerHTML = ''; // 清空旧选项
+
+    // 1. 添加全局学习选项
+    const globalOption = document.createElement('div');
+    globalOption.className = 'study-scope-option';
+    globalOption.textContent = '全局学习 (所有词库)';
+    globalOption.dataset.scopeType = 'global';
+    regularStudyOptionsContainer.appendChild(globalOption);
+
+    // 2. 添加分隔符
+    regularStudyOptionsContainer.appendChild(document.createElement('hr'));
+
+    // 3. 遍历并添加每个集合和词库
+    for (const [collectionName, decks] of collections.entries()) {
+        const collectionOption = document.createElement('div');
+        collectionOption.className = 'study-scope-option collection';
+        collectionOption.textContent = collectionName;
+        collectionOption.dataset.scopeType = 'collection';
+        collectionOption.dataset.scopeName = collectionName;
+        regularStudyOptionsContainer.appendChild(collectionOption);
+
+        const deckList = document.createElement('ul');
+        deckList.className = 'study-scope-deck-list';
+        for (const deckName of decks) {
+            const deckOption = document.createElement('li');
+            deckOption.className = 'study-scope-option deck';
+            deckOption.textContent = deckName;
+            deckOption.dataset.scopeType = 'deck';
+            deckOption.dataset.scopeName = `${collectionName}//${deckName}`;
+            deckList.appendChild(deckOption);
+        }
+        regularStudyOptionsContainer.appendChild(deckList);
+    }
+
+    regularStudyScopeModal.style.display = 'block';
+}
+
+
+/**
  * 为应用设置所有全局事件监听器。
  */
 function setupEventListeners() {
@@ -431,13 +481,34 @@ function setupEventListeners() {
         closeModalBtn.addEventListener('click', ui.closeClearDataModal);
     }
 
+    // --- 规律学习模态框事件 ---
     if (dom.regularStudyBtn) {
-        dom.regularStudyBtn.addEventListener('click', () => {
-            if (regularStudyModule) {
-                triggerRegularStudy(true); // Pass true for manual trigger
-            }
-        });
+        dom.regularStudyBtn.addEventListener('click', populateAndShowStudyScopeModal);
     }
+    regularStudyModalCloseBtn.addEventListener('click', () => {
+        regularStudyScopeModal.style.display = 'none';
+    });
+    regularStudyOptionsContainer.addEventListener('click', async (event) => {
+        const target = event.target.closest('.study-scope-option');
+        if (!target) return;
+
+        const scope = {
+            type: target.dataset.scopeType,
+            name: target.dataset.scopeName
+        };
+
+        regularStudyScopeModal.style.display = 'none';
+
+        try {
+            const success = await regularStudyModule.startScopedStudy(scope);
+            if (!success) {
+                ui.showImportMessage('太棒了，这个范围内今天没有需要复习或学习的单词！', true);
+            }
+        } catch (error) {
+            console.error(`[Main] 开始范围学习时出错 (范围: ${scope.type})`, error);
+            ui.showImportMessage('开始学习时发生错误。', false);
+        }
+    });
 }
 
 /**

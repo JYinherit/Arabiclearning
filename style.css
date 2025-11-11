@@ -71,17 +71,6 @@ body {
     }
 }
 
-.page-header {
-    background-color: #2d3748;
-    color: white;
-    padding: 1.2rem 1rem; /* 稍微减少垂直内边距 */
-    text-align: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    max-width: 90%; /* 设置最大宽度 */
-    margin: 1.5rem auto; /* 自动外边距实现居中 */
-    border-radius: 12px; /* 添加圆角 */
-}
-
 .page-content {
     padding: 1.5rem;
 }
@@ -944,12 +933,6 @@ body.theme-night {
     color: #e0e0e0;
 }
 
- .theme-night .page-header {
-    background-color: #2c2c2c;
-    color: #e0e0e0;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-}
-
  .theme-night .bottom-nav {
     background: #2c2c2c;
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.4);
@@ -1590,7 +1573,6 @@ body.theme-golden-sun {
     background-color: #fff8e1;
     color: #4e342e;
 }
-.theme-golden-sun .page-header { background-color: #ffab00; color: #4e342e; }
 .theme-golden-sun .bottom-nav { background: #fff1cf; }
 .theme-golden-sun .nav-btn { color: #8d6e63; }
 .theme-golden-sun .nav-btn.active { color: #ff8f00; }
@@ -1609,7 +1591,6 @@ body.theme-sakura-pink {
     background-color: #fff0f5;
     color: #5b3f4f;
 }
-.theme-sakura-pink .page-header { background-color: #f8bbd0; color: #5b3f4f; }
 .theme-sakura-pink .bottom-nav { background: #fff5f7; }
 .theme-sakura-pink .nav-btn { color: #886578; }
 .theme-sakura-pink .nav-btn.active { color: #f06292; }
@@ -1628,7 +1609,6 @@ body.theme-moss-green {
     background-color: #f1f8e9;
     color: #33691e;
 }
-.theme-moss-green .page-header { background-color: #aed581; color: #33691e; }
 .theme-moss-green .bottom-nav { background: #f9fff6; }
 .theme-moss-green .nav-btn { color: #558b2f; }
 .theme-moss-green .nav-btn.active { color: #7cb342; }
@@ -1647,7 +1627,6 @@ body.theme-violet {
     background-color: #f3e5f5;
     color: #4a148c;
 }
-.theme-violet .page-header { background-color: #ce93d8; color: #4a148c; }
 .theme-violet .bottom-nav { background: #faf5ff; }
 .theme-violet .nav-btn { color: #6a1b9a; }
 .theme-violet .nav-btn.active { color: #ab47bc; }
@@ -1666,7 +1645,6 @@ body.theme-crimson-red {
     background-color: #ffebee;
     color: #b71c1c;
 }
-.theme-crimson-red .page-header { background-color: #ef9a9a; color: #b71c1c; }
 .theme-crimson-red .bottom-nav { background: #fff5f5; }
 .theme-crimson-red .nav-btn { color: #c62828; }
 .theme-crimson-red .nav-btn.active { color: #e53935; }
@@ -1679,3 +1657,42 @@ body.theme-crimson-red {
 .theme-crimson-red .settings-btn.danger { background: linear-gradient(135deg, #ffebee, #ffcdd2); color: #b71c1c; }
 .theme-crimson-red .modal-content { background: #fff5f5; }
 .theme-crimson-red .spoiler.revealed { background: linear-gradient(135deg, #ffcdd2, #ef9a9a) !important; color: #b71c1c !important; }
+
+/* --- 新增：规律学习范围选择模态框样式 --- */
+.study-scope-option {
+    padding: 12px 15px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    font-size: 1rem;
+}
+
+.study-scope-option:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.study-scope-option.collection {
+    font-weight: bold;
+    margin-top: 10px;
+    font-size: 1.1rem;
+    color: var(--primary-color);
+}
+
+.study-scope-deck-list {
+    list-style-type: none;
+    padding-left: 20px;
+    margin: 5px 0;
+}
+
+.study-scope-deck-list .deck {
+    padding: 8px 15px;
+    font-size: 0.95rem;
+    color: var(--text-color-secondary);
+}
+
+#regular-study-options-container hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 10px 0;
+    opacity: 0.5;
+}

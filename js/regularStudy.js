@@ -168,21 +168,37 @@ export class RegularStudy {
         return stats;
     }
 
+    /**
+     * 从词汇表中提取所有唯一的集合和词库。
+     * @returns {Map<string, Set<string>>} 一个 Map，键是集合名称，值是包含该集合中词库名称的 Set。
+     */
+    getCollectionsAndDecks() {
+        const collections = new Map();
+        for (const word of this.vocabularyWords) {
+            for (const def of word.definitions) {
+                const [collectionName, deckName] = def.sourceDeck.split('//');
+                if (!collections.has(collectionName)) {
+                    collections.set(collectionName, new Set());
+                }
+                collections.get(collectionName).add(deckName);
+            }
+        }
+        return collections;
+    }
+
 
     /**
-     * 为所有词库准备一个全局学习队列。
-     * 该函数首先将所有单词分为三类：到期、新、未到期。
-     * 然后，它将根据我们定义的逻辑构建最终的学习队列。
+     * 为给定的单词列表准备一个学习队列。
+     * @param {Array<object>} [wordList=this.vocabularyWords] - 用于准备队列的单词列表。
      * @returns {Promise<{dueReviewWords: Array, newWords: Array, notDueWords: Array}>} 一个包含所有分类后单词的对象。
      */
-    async prepareStudyQueue() {
+    async prepareStudyQueue(wordList = this.vocabularyWords) {
         await this.loadSettings(); // 确保设置是最新的
 
-        const allWords = this.vocabularyWords;
-        const arabicKeys = allWords.map(w => w.arabic);
+        const arabicKeys = wordList.map(w => w.arabic);
         const progressMap = await dbManager.getWordProgressBatch(arabicKeys);
 
-        const wordsWithProgress = allWords.map(word => {
+        const wordsWithProgress = wordList.map(word => {
             const savedProgress = progressMap.get(word.arabic);
             return savedProgress ? { ...word, progress: savedProgress } : this.scheduler.initializeWord(word);
         });
@@ -306,13 +322,29 @@ export class RegularStudy {
     }
 
     /**
-     * 开始一个全局的“规律学习”会话。
-     * 这个函数会从所有词库中准备一个学习队列，优先处理到期的复习卡片，
-     * 然后是随机顺序的新卡片（或未到期的卡片，如果没有新卡片的话）。
+     * 开始一个指定范围的“规律学习”会话。
+     * @param {object} scope - 定义学习范围的对象。
+     * @param {'global' | 'collection' | 'deck'} scope.type - 范围类型。
+     * @param {string} [scope.name] - 集合或词库的名称。
      * @returns {Promise<boolean>} 如果会话成功开始则为 true，否则为 false。
      */
-    async startGlobalRegularStudy() {
-        const { dueReviewWords, newWords, notDueWords } = await this.prepareStudyQueue();
+    async startScopedStudy(scope = { type: 'global' }) {
+        let wordList = this.vocabularyWords;
+        let sessionDeckName = "规律学习";
+
+        if (scope.type === 'collection') {
+            wordList = this.vocabularyWords.filter(word => 
+                word.definitions.some(def => def.sourceDeck.startsWith(scope.name + '//'))
+            );
+            sessionDeckName = scope.name;
+        } else if (scope.type === 'deck') {
+            wordList = this.vocabularyWords.filter(word => 
+                word.definitions.some(def => def.sourceDeck === scope.name)
+            );
+            sessionDeckName = scope.name.split('//').pop();
+        }
+
+        const { dueReviewWords, newWords, notDueWords } = await this.prepareStudyQueue(wordList);
 
         let wordsForRandomShuffle;
         let isLearningNew = true;
@@ -326,13 +358,12 @@ export class RegularStudy {
 
         const shuffledPart = this._generateTripleRandomQueue(wordsForRandomShuffle);
 
-        // 应用每日新词和最大复习数的限制
         const maxReviews = this.settings.maxReviewWords;
         const dailyNew = this.settings.dailyNewWords;
 
         const reviewQueue = dueReviewWords.slice(0, maxReviews);
         
-        const newWordsQuota = isLearningNew ? dailyNew : Infinity; // 如果是复习未到期词，则不应用新词限额
+        const newWordsQuota = isLearningNew ? dailyNew : Infinity;
         const remainingCapacity = Math.max(0, maxReviews - reviewQueue.length);
         
         const newPartCount = Math.min(shuffledPart.length, newWordsQuota, remainingCapacity);
@@ -342,16 +373,22 @@ export class RegularStudy {
 
         if (finalQueue.length === 0) {
             console.log('[RegularStudy] 今天没有可学习的内容。');
-            // 这里可以考虑向用户显示一个消息
             return false;
         }
 
-        // 对于全局学习，我们将 deckName 设为一个通用标签
-        const sessionDeckName = "规律学习";
         this.currentDeckNameRef.value = sessionDeckName;
         this.beginStudySession(sessionDeckName, finalQueue);
 
         return true;
+    }
+
+    /**
+     * 开始一个全局的“规律学习”会话。
+     * 这是 startScopedStudy 的一个便捷包装。
+     * @returns {Promise<boolean>} 如果会话成功开始则为 true，否则为 false。
+     */
+    async startGlobalRegularStudy() {
+        return this.startScopedStudy({ type: 'global' });
     }
 }
 

@@ -19,9 +19,6 @@
     <div class="app-container">
         <!-- 学习页面 -->
         <div id="study-page" class="page">
-            <div class="page-header">
-                <h1>学习</h1>
-            </div>
             
             <div class="page-content">
                 <div id="card-container">
@@ -76,9 +73,6 @@
 
         <!-- 词库页面 -->
         <div id="decks-page" class="page active">
-            <div class="page-header">
-                <h1>词库管理</h1>
-            </div>
             
             <div class="page-content">
                 <div id="start-screen">
@@ -136,9 +130,6 @@
 
         <!-- 设置页面 -->
         <div id="settings-page" class="page">
-            <div class="page-header">
-                <h1>设置</h1>
-            </div>
             
             <div class="page-content">
                 <div class="settings-section">
@@ -303,6 +294,17 @@
             <div class="modal-actions">
                 <button id="decline-continue-btn" class="btn btn-secondary">重新开始</button>
                 <button id="confirm-continue-btn" class="btn">继续学习</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：规律学习范围选择模态框 -->
+    <div id="regular-study-scope-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>选择学习范围</h2>
+            <div id="regular-study-options-container">
+                <!-- 学习选项将由JS动态加载到这里 -->
             </div>
         </div>
     </div>
