@@ -12,7 +12,7 @@ export const STORAGE_KEYS = {
     RECALL_MODE: 'recall_mode',
     DAILY_REVIEW_WORDS: 'daily_review_words',
     DAILY_NEW_WORDS: 'daily_new_words',
-    NIGHT_MODE: 'night_mode',
+    THEME: 'theme',
     LAST_ACTIVE_DECK: 'last_active_deck',
     REGULAR_STUDY_STATS: 'regular_study_stats'
 };
