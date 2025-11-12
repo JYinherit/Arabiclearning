@@ -1714,3 +1714,85 @@ body.theme-crimson-red {
 #regular-study-scope-modal .modal-actions {
     margin-top: 20px; 
 }
+
+/* --- 规律学习范围选择模态框 --- */
+.study-scope-tabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    padding: 0.8rem 1.2rem;
+    cursor: pointer;
+    background-color: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 1rem;
+    color: var(--text-color-secondary);
+    transition: all 0.2s ease-in-out;
+}
+
+.tab-btn:hover {
+    color: var(--primary-color);
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom: 3px solid var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.study-scope-description {
+    color: var(--text-color-secondary);
+    font-size: 0.95rem;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.options-list {
+    max-height: 40vh;
+    overflow-y: auto;
+    padding-right: 0.5rem; /* For scrollbar spacing */
+}
+
+.study-scope-option {
+    display: block;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.5rem;
+    background-color: var(--background-color-light);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.study-scope-option:hover {
+    background-color: var(--hover-color);
+}
+
+.study-scope-option input[type=checkbox] {
+    margin-right: 0.8rem;
+}
+
+.study-scope-collection-group {
+    margin-bottom: 1.5rem;
+}
+
+.study-scope-collection-group h4 {
+    margin-bottom: 0.8rem;
+    color: var(--primary-color);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.study-scope-deck-list {
+    padding-left: 1rem;
+}

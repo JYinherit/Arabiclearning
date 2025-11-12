@@ -303,9 +303,34 @@
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h2>选择学习范围</h2>
-            <div id="regular-study-options-container">
-                <!-- 学习选项将由JS动态加载到这里 -->
+
+            <!-- 新增：用于模式切换的Tab导航 -->
+            <div class="study-scope-tabs">
+                <button class="tab-btn active" data-tab="global">全局学习</button>
+                <button class="tab-btn" data-tab="collection">学习集合</button>
+                <button class="tab-btn" data-tab="deck">学习词库</button>
             </div>
+
+            <!-- 学习选项将根据选择的Tab动态加载 -->
+            <div id="regular-study-options-container">
+                <!-- 全局学习面板 -->
+                <div id="tab-global" class="tab-content active">
+                    <p class="study-scope-description">将开始一个包含所有已导入内容的学习会话。</p>
+                </div>
+                <!-- 学习集合面板 -->
+                <div id="tab-collection" class="tab-content">
+                    <div id="collection-options-list" class="options-list">
+                        <!-- 集合选项将由JS动态加载到这里 -->
+                    </div>
+                </div>
+                <!-- 学习词库面板 -->
+                <div id="tab-deck" class="tab-content">
+                    <div id="deck-options-list" class="options-list">
+                        <!-- 词库选项将由JS动态加载到这里 -->
+                    </div>
+                </div>
+            </div>
+
             <div class="modal-actions">
                 <button id="regular-study-start-btn" class="btn">开始学习</button>
             </div>
