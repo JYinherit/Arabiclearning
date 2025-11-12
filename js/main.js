@@ -448,21 +448,21 @@ function populateAndShowStudyScopeModal() {
         deckOptionsList.appendChild(collectionGroup);
     }
 
-    // 3. 设置Tab切换逻辑
-    const switchTab = (targetTabId) => {
-        tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === targetTabId));
-        tabContents.forEach(content => content.classList.toggle('active', content.id === `tab-${targetTabId}`));
-    };
-
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-    });
-
-    // 4. 重置到默认视图并显示模态框
+    // 3. 重置到默认视图并显示模态框
     switchTab('global'); // 默认显示全局学习
     regularStudyScopeModal.style.display = 'block';
 }
 
+/**
+ * 切换规律学习模态框中的Tab。
+ * @param {string} targetTabId - 要切换到的Tab的ID ('global', 'collection', 'deck')。
+ */
+function switchTab(targetTabId) {
+    const tabs = regularStudyScopeModal.querySelectorAll('.tab-btn');
+    const tabContents = regularStudyScopeModal.querySelectorAll('.tab-content');
+    tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === targetTabId));
+    tabContents.forEach(content => content.classList.toggle('active', content.id === `tab-${targetTabId}`));
+}
 
 /**
  * 为应用设置所有全局事件监听器。
@@ -571,6 +571,12 @@ function setupEventListeners() {
         regularStudyScopeModal.style.display = 'none';
     });
     
+    // 将Tab切换事件的绑定移到这里，确保只绑定一次
+    const tabs = regularStudyScopeModal.querySelectorAll('.tab-btn');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
     const startBtn = document.getElementById('regular-study-start-btn');
     if (startBtn) {
         startBtn.addEventListener('click', async () => {
