@@ -394,53 +394,75 @@ async function goBackToMenu() {
 
 /**
  * 填充并显示规律学习范围选择模态框。
+ * 该函数现在管理一个Tab界面，允许用户在“全局”、“集合”和“词库”学习模式之间选择。
  */
 function populateAndShowStudyScopeModal() {
     if (!regularStudyModule) return;
 
     const collections = regularStudyModule.getCollectionsAndDecks();
-    regularStudyOptionsContainer.innerHTML = ''; // 清空旧选项
 
-    const createCheckboxOption = (text, scopeType, scopeName, isCollection = false) => {
+    // 获取新的DOM元素
+    const tabs = regularStudyScopeModal.querySelectorAll('.tab-btn');
+    const tabContents = regularStudyScopeModal.querySelectorAll('.tab-content');
+    const collectionOptionsList = document.getElementById('collection-options-list');
+    const deckOptionsList = document.getElementById('deck-options-list');
+
+    // 清空旧内容
+    collectionOptionsList.innerHTML = '';
+    deckOptionsList.innerHTML = '';
+
+    const createCheckboxOption = (text, scopeType, scopeName) => {
         const label = document.createElement('label');
         label.className = 'study-scope-option';
-        if (isCollection) {
-            label.classList.add('collection');
-        }
-
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.dataset.scopeType = scopeType;
         if (scopeName) {
             checkbox.dataset.scopeName = scopeName;
         }
-
         label.appendChild(checkbox);
         label.appendChild(document.createTextNode(` ${text}`));
         return label;
     };
 
-    // 1. 添加全局学习选项
-    regularStudyOptionsContainer.appendChild(createCheckboxOption('全局学习 (所有词库)', 'global'));
-    
-    // 2. 添加分隔符
-    regularStudyOptionsContainer.appendChild(document.createElement('hr'));
+    // 1. 填充“学习集合”面板
+    for (const collectionName of collections.keys()) {
+        collectionOptionsList.appendChild(createCheckboxOption(collectionName, 'collection', collectionName));
+    }
 
-    // 3. 遍历并添加每个集合和词库
+    // 2. 填充“学习词库”面板
     for (const [collectionName, decks] of collections.entries()) {
-        regularStudyOptionsContainer.appendChild(createCheckboxOption(collectionName, 'collection', collectionName, true));
+        const collectionGroup = document.createElement('div');
+        collectionGroup.className = 'study-scope-collection-group';
+
+        const collectionTitle = document.createElement('h4');
+        collectionTitle.textContent = collectionName;
+        collectionGroup.appendChild(collectionTitle);
 
         const deckList = document.createElement('div');
         deckList.className = 'study-scope-deck-list';
         for (const deckName of decks) {
             deckList.appendChild(createCheckboxOption(deckName, 'deck', `${collectionName}//${deckName}`));
         }
-        regularStudyOptionsContainer.appendChild(deckList);
+        collectionGroup.appendChild(deckList);
+        deckOptionsList.appendChild(collectionGroup);
     }
 
+    // 3. 重置到默认视图并显示模态框
+    switchTab('global'); // 默认显示全局学习
     regularStudyScopeModal.style.display = 'block';
 }
 
+/**
+ * 切换规律学习模态框中的Tab。
+ * @param {string} targetTabId - 要切换到的Tab的ID ('global', 'collection', 'deck')。
+ */
+function switchTab(targetTabId) {
+    const tabs = regularStudyScopeModal.querySelectorAll('.tab-btn');
+    const tabContents = regularStudyScopeModal.querySelectorAll('.tab-content');
+    tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === targetTabId));
+    tabContents.forEach(content => content.classList.toggle('active', content.id === `tab-${targetTabId}`));
+}
 
 /**
  * 为应用设置所有全局事件监听器。
@@ -549,32 +571,48 @@ function setupEventListeners() {
         regularStudyScopeModal.style.display = 'none';
     });
     
+    // 将Tab切换事件的绑定移到这里，确保只绑定一次
+    const tabs = regularStudyScopeModal.querySelectorAll('.tab-btn');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
     const startBtn = document.getElementById('regular-study-start-btn');
     if (startBtn) {
         startBtn.addEventListener('click', async () => {
-            const selectedScopes = [];
-            const checkboxes = regularStudyOptionsContainer.querySelectorAll('input[type="checkbox"]:checked');
-            
-            checkboxes.forEach(cb => {
-                selectedScopes.push({
-                    type: cb.dataset.scopeType,
-                    name: cb.dataset.scopeName
-                });
-            });
+            const activeTab = regularStudyScopeModal.querySelector('.tab-btn.active').dataset.tab;
+            let selectedScopes = [];
 
-            if (selectedScopes.length === 0) {
+            if (activeTab === 'global') {
+                selectedScopes.push({ type: 'global' });
+            } else if (activeTab === 'collection') {
+                const checkboxes = document.querySelectorAll('#collection-options-list input[type="checkbox"]:checked');
+                checkboxes.forEach(cb => {
+                    selectedScopes.push({
+                        type: 'collection',
+                        name: cb.dataset.scopeName
+                    });
+                });
+            } else if (activeTab === 'deck') {
+                const checkboxes = document.querySelectorAll('#deck-options-list input[type="checkbox"]:checked');
+                checkboxes.forEach(cb => {
+                    selectedScopes.push({
+                        type: 'deck',
+                        name: cb.dataset.scopeName
+                    });
+                });
+            }
+
+            if (activeTab !== 'global' && selectedScopes.length === 0) {
                 ui.showImportMessage('请至少选择一个学习范围。', false);
                 return;
             }
 
-            // 如果选择了“全局”，则忽略其他选项
-            const globalScope = selectedScopes.find(s => s.type === 'global');
-            const finalScopes = globalScope ? [globalScope] : selectedScopes;
-
             regularStudyScopeModal.style.display = 'none';
 
             try {
-                const success = await regularStudyModule.startScopedStudy(finalScopes);
+                // `startScopedStudy` 现在接收一个统一的范围数组
+                const success = await regularStudyModule.startScopedStudy(selectedScopes);
                 if (!success) {
                     ui.showImportMessage('太棒了，所选范围内今天没有需要复习或学习的单词！', true);
                 }
