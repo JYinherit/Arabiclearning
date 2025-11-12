@@ -32,6 +32,7 @@ const isSessionActiveRef = { value: false }; // 标记学习会话是否正在�
 let sessionQueue = []; // 当前会话中待学习的单词队列。
 let sessionState = {}; // 保存整个当前会话状态的对象，用于保存/恢复。
 let sessionStartDate = null; // 当前会话开始的日期，用于统计。
+let isFsrsSession = false; // 标记当前是否为 FSRS 会话。
 
 // --- 模块实例 ---
 const scheduler = new ReviewScheduler(); // FSRS 记忆调度器实例。
@@ -60,9 +61,10 @@ function initialize(vocabulary) {
  * @param {object} [options={}] - 附加选项，如预先计算好的学习队列。
  */
 async function startSession(deckName, enableFsrs = false, options = {}) {
+    isFsrsSession = enableFsrs; // 设置 FSRS 会话标志
     // 从全局词汇中筛选出所选词库的单词。
     const deckWords = vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck.startsWith(deckName)));
-    console.log(`[Main] 开始词库会话: "${deckName}", 找到单词数: ${deckWords.length}`);
+    console.log(`[Main] 开始词库会话: "${deckName}", 找到单词数: ${deckWords.length}, FSRS 启用: ${isFsrsSession}`);
     
     await stats.onSessionStart();
 
@@ -172,6 +174,7 @@ function initializeNewSessionWithQueue(precomputedQueue) {
  * @param {object} options - 包含 precomputedQueue 和 fullWordList 的选项对象。
  */
 export async function startSessionFromPrecomputedQueue(deckName, enableFsrs, options) {
+    isFsrsSession = enableFsrs; // 设置 FSRS 会话标志
     if (!options || !options.precomputedQueue || !options.fullWordList) {
         console.error('[Main] 尝试用不完整的选项来开始预计算会话。');
         ui.showImportMessage('启动学习时发生内部错误。', false);
@@ -277,26 +280,38 @@ async function showNextWord() {
 async function handleRating(rating) {
     if (!currentWord || isReviewingHistory) return;
 
-    const { card: updatedWord, isNewCard } = scheduler.processReview(currentWord, rating);
-    currentWord = updatedWord;
+    // FSRS 模式下，更新单词进度并记录统计数据
+    if (isFsrsSession) {
+        const { card: updatedWord, isNewCard } = scheduler.processReview(currentWord, rating);
+        currentWord = updatedWord;
 
-    if (rating === RATING.EASY) {
-        if (isNewCard) {
-            await stats.trackWordLearnedToday(currentWord, currentDeckNameRef.value);
-            // If this is a regular study session, update the daily new word count.
-            if (regularStudyModule) {
-                await regularStudyModule.incrementTodayLearnedWords(currentDeckNameRef.value);
+        if (rating === RATING.EASY) {
+            if (isNewCard) {
+                await stats.trackWordLearnedToday(currentWord, currentDeckNameRef.value);
+                // 如果是规律学习会话，则更新每日新词计数。
+                if (regularStudyModule) {
+                    await regularStudyModule.incrementTodayLearnedWords(currentDeckNameRef.value);
+                }
             }
+            updateSessionProgress();
+            await showNextWord();
+        } else {
+            // 重新插入队列中以供复习
+            const reinsertPosition = Math.min(sessionQueue.length, Math.floor(Math.random() * 3) + 3);
+            sessionQueue.splice(reinsertPosition, 0, currentWord);
+            await showNextWord();
         }
-        updateSessionProgress();
-        await showNextWord();
     } else {
-        // 如果单词被遗忘或觉得困难，则将其重新插入队列中靠前的位置，而不是队尾。
-        // 这确保用户能很快再次看到它，但又不会立即重复。
-        // 插入位置选择在队列长度和5之间的一个随机点，以避免可预测性。
-        const reinsertPosition = Math.min(sessionQueue.length, Math.floor(Math.random() * 3) + 3); // 插入到3-5个位置后
-        sessionQueue.splice(reinsertPosition, 0, currentWord);
-        await showNextWord();
+        // 预览模式下，不记录 FSRS，只处理会话队列
+        if (rating === RATING.EASY) {
+            updateSessionProgress(); // 仍然更新会话内部进度条
+            await showNextWord();
+        } else {
+            // 重新插入队列中以供复习
+            const reinsertPosition = Math.min(sessionQueue.length, Math.floor(Math.random() * 3) + 3);
+            sessionQueue.splice(reinsertPosition, 0, currentWord);
+            await showNextWord();
+        }
     }
 }
 
@@ -304,10 +319,13 @@ async function handleRating(rating) {
  * 更新会话状态对象并将其保存到持久化存储中。
  */
 async function updateAndSaveSessionState() {
-    sessionState.sessionQueue = sessionQueue.map(w => ({ arabic: w.arabic }));
-    sessionState.sessionLearnedCount = Array.from(sessionState.sessionLearnedCount.entries()); // 序列化
-    sessionState.sessionWordsState = Array.from(sessionState.sessionWordsState.entries()); // 序列化
-    await storage.saveProgress(currentDeckNameRef.value, activeWords, sessionState);
+    // 只有在 FSRS 会话中才保存进度。
+    if (isFsrsSession) {
+        sessionState.sessionQueue = sessionQueue.map(w => ({ arabic: w.arabic }));
+        sessionState.sessionLearnedCount = Array.from(sessionState.sessionLearnedCount.entries()); // 序列化
+        sessionState.sessionWordsState = Array.from(sessionState.sessionWordsState.entries()); // 序列化
+        await storage.saveProgress(currentDeckNameRef.value, activeWords, sessionState);
+    }
     ui.updateProgressBar(sessionState.completedCount || 0, sessionState.currentSessionTotal || 0);
 }
 
@@ -356,10 +374,17 @@ function renderDeckSelection() {
  */
 async function goBackToMenu() {
     if (isSessionActiveRef.value) {
-        if (!confirm('您确定要退出当前的学习会话吗？进度将会保存。')) {
+        const confirmMsg = isFsrsSession
+            ? '您确定要退出当前的学习会话吗？进度将会保存。'
+            : '您确定要退出当前的预览会话吗？进度将不会被保存。';
+
+        if (!confirm(confirmMsg)) {
             return; // 用户取消，则中止操作
         }
-        await updateAndSaveSessionState();
+
+        if (isFsrsSession) {
+            await updateAndSaveSessionState();
+        }
     }
     isSessionActiveRef.value = false;
     renderDeckSelection();

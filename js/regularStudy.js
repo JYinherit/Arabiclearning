@@ -319,9 +319,9 @@ export class RegularStudy {
             return;
         }
         // `true` 标志表示这是一个启用 FSRS 的会话。
-        this.startSession(deckName, true, { 
+        this.startSession(deckName, true, {
             precomputedQueue: studyQueue,
-            fullWordList: wordList 
+            fullWordList: wordList
         });
     }
 
