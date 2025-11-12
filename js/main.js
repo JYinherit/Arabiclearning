@@ -32,10 +32,16 @@ const isSessionActiveRef = { value: false }; // 标记学习会话是否正在�
 let sessionQueue = []; // 当前会话中待学习的单词队列。
 let sessionState = {}; // 保存整个当前会话状态的对象，用于保存/恢复。
 let sessionStartDate = null; // 当前会话开始的日期，用于统计。
+let isFsrsSession = false; // 标记当前是否为 FSRS 会话。
 
 // --- 模块实例 ---
 const scheduler = new ReviewScheduler(); // FSRS 记忆调度器实例。
 let regularStudyModule = null; // “规律学习”功能的模块实例。
+
+// --- 新增：规律学习模态框DOM引用 ---
+const regularStudyScopeModal = document.getElementById('regular-study-scope-modal');
+const regularStudyOptionsContainer = document.getElementById('regular-study-options-container');
+const regularStudyModalCloseBtn = regularStudyScopeModal.querySelector('.close-button');
 
 
 /**
@@ -55,9 +61,10 @@ function initialize(vocabulary) {
  * @param {object} [options={}] - 附加选项，如预先计算好的学习队列。
  */
 async function startSession(deckName, enableFsrs = false, options = {}) {
+    isFsrsSession = enableFsrs; // 设置 FSRS 会话标志
     // 从全局词汇中筛选出所选词库的单词。
-    const deckWords = vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck === deckName));
-    console.log(`[Main] 开始词库会话: "${deckName}", 找到单词数: ${deckWords.length}`);
+    const deckWords = vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck.startsWith(deckName)));
+    console.log(`[Main] 开始词库会话: "${deckName}", 找到单词数: ${deckWords.length}, FSRS 启用: ${isFsrsSession}`);
     
     await stats.onSessionStart();
 
@@ -161,6 +168,69 @@ function initializeNewSessionWithQueue(precomputedQueue) {
 }
 
 /**
+ * 专为“规律学习”设计，直接从一个预先计算好的队列开始会话。
+ * @param {string} deckName - 要用于显示和状态保存的会话名称。
+ * @param {boolean} enableFsrs - 始终为 true，表示这是一个 FSRS 会话。
+ * @param {object} options - 包含 precomputedQueue 和 fullWordList 的选项对象。
+ */
+export async function startSessionFromPrecomputedQueue(deckName, enableFsrs, options) {
+    isFsrsSession = enableFsrs; // 设置 FSRS 会话标志
+    if (!options || !options.precomputedQueue || !options.fullWordList) {
+        console.error('[Main] 尝试用不完整的选项来开始预计算会话。');
+        ui.showImportMessage('启动学习时发生内部错误。', false);
+        return;
+    }
+    
+    if (options.precomputedQueue.length === 0) {
+        ui.showImportMessage('太棒了，今天没有可学习的内容。', true);
+        return;
+    }
+
+    console.log(`[Main] 开始一个预计算的会话: "${deckName}"`);
+    await stats.onSessionStart();
+
+    currentDeckNameRef.value = deckName;
+    storage.saveSetting(STORAGE_KEYS.LAST_ACTIVE_DECK, deckName);
+
+    let savedSession = null;
+    try {
+        savedSession = await storage.loadSessionState(deckName);
+    } catch (error) {
+        console.error(`[Main] 恢复会话 "${deckName}" 失败，可能数据已损坏。`, error);
+        ui.showImportMessage('恢复会话失败，将开始新会话。', false);
+        await storage.clearSessionState(deckName);
+    }
+
+    const start = () => {
+        sessionStartDate = new Date().toDateString();
+        isSessionActiveRef.value = true;
+        switchToPage('study-page');
+        ui.showScreen(dom.cardContainer);
+        showNextWord();
+    };
+
+    if (savedSession) {
+        ui.openContinueSessionModal(
+            () => { // onConfirm: 恢复会话
+                initialize(options.fullWordList); // 使用完整列表初始化
+                restoreSessionState(savedSession);
+                start();
+            },
+            () => { // onDecline: 开始新会话
+                initialize(options.fullWordList); // 使用完整列表初始化
+                initializeNewSessionWithQueue(options.precomputedQueue);
+                start();
+            }
+        );
+    } else {
+        // 没有已保存的会话，开始一个新会话。
+        initialize(options.fullWordList); // 使用完整列表初始化
+        initializeNewSessionWithQueue(options.precomputedQueue);
+        start();
+    }
+}
+
+/**
  * 通过获取当前词库的所有到期单词来初始化新会话。
  * @param {Array} vocabulary - 当前活动词库中的单词。
  */
@@ -210,26 +280,38 @@ async function showNextWord() {
 async function handleRating(rating) {
     if (!currentWord || isReviewingHistory) return;
 
-    const { card: updatedWord, isNewCard } = scheduler.processReview(currentWord, rating);
-    currentWord = updatedWord;
+    // FSRS 模式下，更新单词进度并记录统计数据
+    if (isFsrsSession) {
+        const { card: updatedWord, isNewCard } = scheduler.processReview(currentWord, rating);
+        currentWord = updatedWord;
 
-    if (rating === RATING.EASY) {
-        if (isNewCard) {
-            await stats.trackWordLearnedToday(currentWord, currentDeckNameRef.value);
-            // If this is a regular study session, update the daily new word count.
-            if (regularStudyModule) {
-                await regularStudyModule.incrementTodayLearnedWords(currentDeckNameRef.value);
+        if (rating === RATING.EASY) {
+            if (isNewCard) {
+                await stats.trackWordLearnedToday(currentWord, currentDeckNameRef.value);
+                // 如果是规律学习会话，则更新每日新词计数。
+                if (regularStudyModule) {
+                    await regularStudyModule.incrementTodayLearnedWords(currentDeckNameRef.value);
+                }
             }
+            updateSessionProgress();
+            await showNextWord();
+        } else {
+            // 重新插入队列中以供复习
+            const reinsertPosition = Math.min(sessionQueue.length, Math.floor(Math.random() * 3) + 3);
+            sessionQueue.splice(reinsertPosition, 0, currentWord);
+            await showNextWord();
         }
-        updateSessionProgress();
-        await showNextWord();
     } else {
-        // 如果单词被遗忘或觉得困难，则将其重新插入队列中靠前的位置，而不是队尾。
-        // 这确保用户能很快再次看到它，但又不会立即重复。
-        // 插入位置选择在队列长度和5之间的一个随机点，以避免可预测性。
-        const reinsertPosition = Math.min(sessionQueue.length, Math.floor(Math.random() * 3) + 3); // 插入到3-5个位置后
-        sessionQueue.splice(reinsertPosition, 0, currentWord);
-        await showNextWord();
+        // 预览模式下，不记录 FSRS，只处理会话队列
+        if (rating === RATING.EASY) {
+            updateSessionProgress(); // 仍然更新会话内部进度条
+            await showNextWord();
+        } else {
+            // 重新插入队列中以供复习
+            const reinsertPosition = Math.min(sessionQueue.length, Math.floor(Math.random() * 3) + 3);
+            sessionQueue.splice(reinsertPosition, 0, currentWord);
+            await showNextWord();
+        }
     }
 }
 
@@ -237,10 +319,13 @@ async function handleRating(rating) {
  * 更新会话状态对象并将其保存到持久化存储中。
  */
 async function updateAndSaveSessionState() {
-    sessionState.sessionQueue = sessionQueue.map(w => ({ arabic: w.arabic }));
-    sessionState.sessionLearnedCount = Array.from(sessionState.sessionLearnedCount.entries()); // 序列化
-    sessionState.sessionWordsState = Array.from(sessionState.sessionWordsState.entries()); // 序列化
-    await storage.saveProgress(currentDeckNameRef.value, activeWords, sessionState);
+    // 只有在 FSRS 会话中才保存进度。
+    if (isFsrsSession) {
+        sessionState.sessionQueue = sessionQueue.map(w => ({ arabic: w.arabic }));
+        sessionState.sessionLearnedCount = Array.from(sessionState.sessionLearnedCount.entries()); // 序列化
+        sessionState.sessionWordsState = Array.from(sessionState.sessionWordsState.entries()); // 序列化
+        await storage.saveProgress(currentDeckNameRef.value, activeWords, sessionState);
+    }
     ui.updateProgressBar(sessionState.completedCount || 0, sessionState.currentSessionTotal || 0);
 }
 
@@ -249,23 +334,38 @@ async function updateAndSaveSessionState() {
  */
 function renderDeckSelection() {
     if (dom.skeletonLoader) dom.skeletonLoader.style.display = 'none';
-    // 按 sourceDeck 对单词进行分组，为 UI 创建一个虚拟的词库结构。
-    const decks = vocabularyWords.reduce((acc, word) => {
+
+    const collections = vocabularyWords.reduce((acc, word) => {
         word.definitions.forEach(def => {
-            if (!acc[def.sourceDeck]) {
-                acc[def.sourceDeck] = [];
+            const [collectionName, deckName] = def.sourceDeck.split('//');
+            if (!acc[collectionName]) {
+                acc[collectionName] = { subDecks: {}, words: new Set() };
             }
-            acc[def.sourceDeck].push(word);
+            if (!acc[collectionName].subDecks[deckName]) {
+                acc[collectionName].subDecks[deckName] = new Set();
+            }
+            acc[collectionName].subDecks[deckName].add(word);
+            acc[collectionName].words.add(word);
         });
         return acc;
     }, {});
-    
-    // 确保每个词库只包含唯一的单词。
-    for (const deckName in decks) {
-        decks[deckName] = [...new Set(decks[deckName])];
+
+    // 将 Set 转换为数组并计算长度
+    for (const collectionName in collections) {
+        const collection = collections[collectionName];
+        collection.wordCount = collection.words.size;
+        delete collection.words; // 释放内存
+
+        for (const deckName in collection.subDecks) {
+            const wordSet = collection.subDecks[deckName];
+            collection.subDecks[deckName] = {
+                words: Array.from(wordSet),
+                wordCount: wordSet.size
+            };
+        }
     }
 
-    ui.setupSelectionScreen(decks, startSession);
+    ui.setupSelectionScreen(collections, startSession);
     ui.showScreen(dom.startScreen);
 }
 
@@ -274,15 +374,94 @@ function renderDeckSelection() {
  */
 async function goBackToMenu() {
     if (isSessionActiveRef.value) {
-        if (!confirm('您确定要退出当前的学习会话吗？进度将会保存。')) {
+        const confirmMsg = isFsrsSession
+            ? '您确定要退出当前的学习会话吗？进度将会保存。'
+            : '您确定要退出当前的预览会话吗？进度将不会被保存。';
+
+        if (!confirm(confirmMsg)) {
             return; // 用户取消，则中止操作
         }
-        await updateAndSaveSessionState();
+
+        if (isFsrsSession) {
+            await updateAndSaveSessionState();
+        }
     }
     isSessionActiveRef.value = false;
     renderDeckSelection();
     switchToPage('decks-page');
     updateNavigationState('decks-page');
+}
+
+/**
+ * 填充并显示规律学习范围选择模态框。
+ * 该函数现在管理一个Tab界面，允许用户在“全局”、“集合”和“词库”学习模式之间选择。
+ */
+function populateAndShowStudyScopeModal() {
+    if (!regularStudyModule) return;
+
+    const collections = regularStudyModule.getCollectionsAndDecks();
+
+    // 获取新的DOM元素
+    const tabs = regularStudyScopeModal.querySelectorAll('.tab-btn');
+    const tabContents = regularStudyScopeModal.querySelectorAll('.tab-content');
+    const collectionOptionsList = document.getElementById('collection-options-list');
+    const deckOptionsList = document.getElementById('deck-options-list');
+
+    // 清空旧内容
+    collectionOptionsList.innerHTML = '';
+    deckOptionsList.innerHTML = '';
+
+    const createCheckboxOption = (text, scopeType, scopeName) => {
+        const label = document.createElement('label');
+        label.className = 'study-scope-option';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.dataset.scopeType = scopeType;
+        if (scopeName) {
+            checkbox.dataset.scopeName = scopeName;
+        }
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(` ${text}`));
+        return label;
+    };
+
+    // 1. 填充“学习集合”面板
+    for (const collectionName of collections.keys()) {
+        collectionOptionsList.appendChild(createCheckboxOption(collectionName, 'collection', collectionName));
+    }
+
+    // 2. 填充“学习词库”面板
+    for (const [collectionName, decks] of collections.entries()) {
+        const collectionGroup = document.createElement('div');
+        collectionGroup.className = 'study-scope-collection-group';
+
+        const collectionTitle = document.createElement('h4');
+        collectionTitle.textContent = collectionName;
+        collectionGroup.appendChild(collectionTitle);
+
+        const deckList = document.createElement('div');
+        deckList.className = 'study-scope-deck-list';
+        for (const deckName of decks) {
+            deckList.appendChild(createCheckboxOption(deckName, 'deck', `${collectionName}//${deckName}`));
+        }
+        collectionGroup.appendChild(deckList);
+        deckOptionsList.appendChild(collectionGroup);
+    }
+
+    // 3. 重置到默认视图并显示模态框
+    switchTab('global'); // 默认显示全局学习
+    regularStudyScopeModal.style.display = 'block';
+}
+
+/**
+ * 切换规律学习模态框中的Tab。
+ * @param {string} targetTabId - 要切换到的Tab的ID ('global', 'collection', 'deck')。
+ */
+function switchTab(targetTabId) {
+    const tabs = regularStudyScopeModal.querySelectorAll('.tab-btn');
+    const tabContents = regularStudyScopeModal.querySelectorAll('.tab-content');
+    tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === targetTabId));
+    tabContents.forEach(content => content.classList.toggle('active', content.id === `tab-${targetTabId}`));
 }
 
 /**
@@ -326,7 +505,9 @@ function setupEventListeners() {
     // 监听文件导入事件。
     dom.importBtn.addEventListener('click', () => dom.fileInput.click());
     dom.fileInput.addEventListener('change', (event) => {
-        handleFileImport(event, vocabularyWords,
+        handleFileImport(
+            event,
+            vocabularyWords,
             renderDeckSelection,
             () => storage.saveDecksToStorage(vocabularyWords)
         );
@@ -382,10 +563,62 @@ function setupEventListeners() {
         closeModalBtn.addEventListener('click', ui.closeClearDataModal);
     }
 
+    // --- 规律学习模态框事件 ---
     if (dom.regularStudyBtn) {
-        dom.regularStudyBtn.addEventListener('click', () => {
-            if (regularStudyModule) {
-                triggerRegularStudy(true); // Pass true for manual trigger
+        dom.regularStudyBtn.addEventListener('click', populateAndShowStudyScopeModal);
+    }
+    regularStudyModalCloseBtn.addEventListener('click', () => {
+        regularStudyScopeModal.style.display = 'none';
+    });
+    
+    // 将Tab切换事件的绑定移到这里，确保只绑定一次
+    const tabs = regularStudyScopeModal.querySelectorAll('.tab-btn');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
+    const startBtn = document.getElementById('regular-study-start-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', async () => {
+            const activeTab = regularStudyScopeModal.querySelector('.tab-btn.active').dataset.tab;
+            let selectedScopes = [];
+
+            if (activeTab === 'global') {
+                selectedScopes.push({ type: 'global' });
+            } else if (activeTab === 'collection') {
+                const checkboxes = document.querySelectorAll('#collection-options-list input[type="checkbox"]:checked');
+                checkboxes.forEach(cb => {
+                    selectedScopes.push({
+                        type: 'collection',
+                        name: cb.dataset.scopeName
+                    });
+                });
+            } else if (activeTab === 'deck') {
+                const checkboxes = document.querySelectorAll('#deck-options-list input[type="checkbox"]:checked');
+                checkboxes.forEach(cb => {
+                    selectedScopes.push({
+                        type: 'deck',
+                        name: cb.dataset.scopeName
+                    });
+                });
+            }
+
+            if (activeTab !== 'global' && selectedScopes.length === 0) {
+                ui.showImportMessage('请至少选择一个学习范围。', false);
+                return;
+            }
+
+            regularStudyScopeModal.style.display = 'none';
+
+            try {
+                // `startScopedStudy` 现在接收一个统一的范围数组
+                const success = await regularStudyModule.startScopedStudy(selectedScopes);
+                if (!success) {
+                    ui.showImportMessage('太棒了，所选范围内今天没有需要复习或学习的单词！', true);
+                }
+            } catch (error) {
+                console.error(`[Main] 开始范围学习时出错`, error);
+                ui.showImportMessage('开始学习时发生错误。', false);
             }
         });
     }
@@ -458,44 +691,33 @@ function showManualDeckSelection() {
 }
 
 /**
- * 触发一次规律学习。会尝试根据上一个活动词库或到期单词最多的词库来自动开始一个学习会话。
+ * 触发一次全局的规律学习会话。
  * @param {boolean} [isManualTrigger=false] - 是否由用户手动触发。
  */
 async function triggerRegularStudy(isManualTrigger = false) {
     if (!regularStudyModule) {
+        console.warn('[Main] 规律学习模块未初始化，回退到手动选择。');
         showManualDeckSelection();
         return;
     }
 
-    console.log('[Main] 尝试开始规律学习...');
-    const lastDeckName = await storage.getSetting(STORAGE_KEYS.LAST_ACTIVE_DECK, null);
-    if (lastDeckName) {
-        const success = await regularStudyModule.startRegularStudyWithDeckName(lastDeckName);
-        if (success) {
-            console.log(`[Main] 已开始上一个活动词库: ${lastDeckName}`);
-            return;
-        }
-    }
+    try {
+        console.log('[Main] 尝试开始全局规律学习...');
+        const success = await regularStudyModule.startGlobalRegularStudy();
 
-    console.log('[Main] 正在寻找拥有最多到期单词的最佳词库...');
-    const deckStats = await regularStudyModule.getAllDecksProgressStats();
-    if (deckStats.length > 0) {
-        deckStats.sort((a, b) => b.dueCount - a.dueCount);
-        const bestDeckName = deckStats[0].deckName;
-        if (deckStats[0].dueCount > 0) {
-            const success = await regularStudyModule.startRegularStudyWithDeckName(bestDeckName);
-            if (success) {
-                console.log(`[Main] 已开始最佳词库: ${bestDeckName}`);
-                return;
-            }
+        if (!success && isManualTrigger) {
+            ui.showImportMessage('太棒了，今天没有需要复习或学习的单词！', true);
+        } else if (!success) {
+            // 如果是自动触发且无内容可学，则显示手动选择界面
+            showManualDeckSelection();
         }
-    }
-
-    // 如果没有找到合适的词库进行自动开始
-    if (isManualTrigger) {
-        ui.showImportMessage('太棒了，今天没有需要复习的单词！', true);
-    } else {
-        showManualDeckSelection();
+    } catch (error) {
+        console.error('[Main] 开始规律学习时出错:', error);
+        if (isManualTrigger) {
+            ui.showImportMessage('开始学习时发生错误。', false);
+        } else {
+            showManualDeckSelection();
+        }
     }
 }
 
@@ -529,7 +751,7 @@ window.onload = async () => {
 
     regularStudyModule = await setupRegularStudy({
         vocabularyWords,
-        startSession,
+        startSession: startSessionFromPrecomputedQueue, // 将规律学习的启动指向新函数
         currentDeckNameRef,
         isSessionActiveRef
     });

@@ -19,9 +19,6 @@
     <div class="app-container">
         <!-- 学习页面 -->
         <div id="study-page" class="page">
-            <div class="page-header">
-                <h1>学习</h1>
-            </div>
             
             <div class="page-content">
                 <div id="card-container">
@@ -76,9 +73,6 @@
 
         <!-- 词库页面 -->
         <div id="decks-page" class="page active">
-            <div class="page-header">
-                <h1>词库管理</h1>
-            </div>
             
             <div class="page-content">
                 <div id="start-screen">
@@ -136,9 +130,6 @@
 
         <!-- 设置页面 -->
         <div id="settings-page" class="page">
-            <div class="page-header">
-                <h1>设置</h1>
-            </div>
             
             <div class="page-content">
                 <div class="settings-section">
@@ -162,12 +153,16 @@
                 <div class="settings-section">
                     <h3>外观设置</h3>
                     <div class="setting-item">
-                        <span>日间模式</span>
-                        <label class="switch">
-                            <input type="checkbox" id="night-mode-toggle">
-                            <span class="slider round"></span>
-                        </label>
-                        <span>夜间模式</span>
+                        <label for="theme-select">颜色主题</label>
+                        <select id="theme-select" class="theme-select">
+                            <option value="default">默认</option>
+                            <option value="golden-sun">金日</option>
+                            <option value="sakura-pink">樱粉</option>
+                            <option value="moss-green">苔绿</option>
+                            <option value="night">夜间</option>
+                            <option value="violet">堇紫</option>
+                            <option value="crimson-red">赤红</option>
+                        </select>
                     </div>
                 </div>
 
@@ -184,7 +179,7 @@
                 <div class="settings-section">
                     <h3>规律学习设置</h3>
                     <div class="setting-item">
-                        <label for="daily-review-words">每日复习单词数</label>
+                        <label for="daily-review-words">每日总学习单词数</label>
                         <input type="number" id="daily-review-words" min="0" value="30">
                     </div>
                     <div class="setting-item">
@@ -299,6 +294,45 @@
             <div class="modal-actions">
                 <button id="decline-continue-btn" class="btn btn-secondary">重新开始</button>
                 <button id="confirm-continue-btn" class="btn">继续学习</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：规律学习范围选择模态框 -->
+    <div id="regular-study-scope-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>选择学习范围</h2>
+
+            <!-- 新增：用于模式切换的Tab导航 -->
+            <div class="study-scope-tabs">
+                <button class="tab-btn active" data-tab="global">全局学习</button>
+                <button class="tab-btn" data-tab="collection">学习集合</button>
+                <button class="tab-btn" data-tab="deck">学习词库</button>
+            </div>
+
+            <!-- 学习选项将根据选择的Tab动态加载 -->
+            <div id="regular-study-options-container">
+                <!-- 全局学习面板 -->
+                <div id="tab-global" class="tab-content active">
+                    <p class="study-scope-description">将开始一个包含所有已导入内容的学习会话。</p>
+                </div>
+                <!-- 学习集合面板 -->
+                <div id="tab-collection" class="tab-content">
+                    <div id="collection-options-list" class="options-list">
+                        <!-- 集合选项将由JS动态加载到这里 -->
+                    </div>
+                </div>
+                <!-- 学习词库面板 -->
+                <div id="tab-deck" class="tab-content">
+                    <div id="deck-options-list" class="options-list">
+                        <!-- 词库选项将由JS动态加载到这里 -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="regular-study-start-btn" class="btn">开始学习</button>
             </div>
         </div>
     </div>
