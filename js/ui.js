@@ -36,6 +36,34 @@ export function showScreen(screen) {
     }
 }
 
+/**
+ * 在指定容器中显示一句随机的阿拉伯谚语。
+ * @param {Array<object>} proverbs - 包含谚语对象的数组。
+ */
+export function displayProverb(proverbs) {
+    if (!proverbs || proverbs.length === 0) {
+        dom.proverbContainer.innerHTML = '<p>没有可显示的谚语。</p>';
+    } else {
+        const randomIndex = Math.floor(Math.random() * proverbs.length);
+        const proverb = proverbs[randomIndex];
+        dom.proverbContainer.innerHTML = `
+            <div class="arabic-proverb">${proverb.arabic}</div>
+            <div class="chinese-translation">${proverb.chinese}</div>
+        `;
+    }
+
+    // 直接控制容器的可见性，而不是使用 showScreen
+    if (dom.proverbContainer) {
+        dom.proverbContainer.style.display = 'flex';
+    }
+    if (dom.cardContainer) {
+        dom.cardContainer.style.display = 'none';
+    }
+    if (dom.completionScreen) {
+        dom.completionScreen.style.display = 'none';
+    }
+}
+
 // --- 学习卡片 UI ---
 
 /**

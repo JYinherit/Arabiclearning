@@ -29,6 +29,30 @@ body {
     flex-direction: column;
 }
 
+#proverb-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+    color: #4a5568;
+    min-height: 50vh;
+}
+
+#proverb-container .arabic-proverb {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    direction: rtl;
+    font-family: 'Noto Sans Arabic', serif;
+}
+
+#proverb-container .chinese-translation {
+    font-size: 1.5rem;
+    color: #718096;
+}
+
 @media (prefers-reduced-motion: no-preference) {
     .page.active {
         animation: fadeIn 0.3s ease-in;
