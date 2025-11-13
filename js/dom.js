@@ -12,6 +12,7 @@ export const settingsPage = document.getElementById('settings-page');
 export const startScreen = document.getElementById('start-screen');
 export const cardContainer = document.getElementById('card-container');
 export const completionScreen = document.getElementById('completion-screen');
+export const quoteContainer = document.getElementById('quote-container');
 export const deckSelectionContainer = document.getElementById('deck-selection-container');
 export const skeletonLoader = document.getElementById('skeleton-loader');
 

@@ -19,6 +19,48 @@ import { STORAGE_KEYS } from './constants.js';
 import { dbManager } from './db.js';
 
 // --- 全局状态 ---
+const arabicQuotes = [
+    {
+        arabic: "مَنْ طَلَبَ الْعُلَا سَهِرَ اللَّيَالِي",
+        chinese: "追求卓越的人，必须彻夜不眠。"
+    },
+    {
+        arabic: "اطلبوا العلم من المهد إلى اللحد",
+        chinese: "从摇篮到坟墓，求知不倦。"
+    },
+    {
+        arabic: "الصبر مفتاح الفرج",
+        chinese: "忍耐是解脱的关键。"
+    },
+    {
+        arabic: "العقل السليم في الجسم السليم",
+        chinese: "健康的身体孕育健康的心灵。"
+    },
+    {
+        arabic: "خير الكلام ما قل ودل",
+        chinese: "最好的言辞是简明扼要的。"
+    },
+    {
+        arabic: "لا تؤجل عمل اليوم إلى الغد",
+        chinese: "今日事，今日毕。"
+    },
+    {
+        arabic: "الوحدة خير من جليس السوء",
+        chinese: "宁可孤独，不与恶为伴。"
+    },
+    {
+        arabic: "من جد وجد",
+        chinese: "功夫不负有心人。"
+    },
+    {
+        arabic: "ما كل ما يتمنى المرء يدركه",
+        chinese: "事事未必尽如人意。"
+    },
+    {
+        arabic: "الوقاية خير من العلاج",
+        chinese: "预防胜于治疗。"
+    }
+];
 const vocabularyWords = []; // 所有单词数据的唯一真实来源，在启动时加载。
 const currentDeckNameRef = { value: '' }; // 用于保存当前活动词库名称的引用对象。
 let activeWords = []; // 当前会话单词的深拷贝，包含其学习进度。
@@ -182,7 +224,13 @@ export async function startSessionFromPrecomputedQueue(deckName, enableFsrs, opt
     }
     
     if (options.precomputedQueue.length === 0) {
-        ui.showImportMessage('太棒了，今天没有可学习的内容。', true);
+        const quote = arabicQuotes[Math.floor(Math.random() * arabicQuotes.length)];
+        dom.quoteContainer.innerHTML = `
+            <p class="quote-arabic">${quote.arabic}</p>
+            <p class="quote-chinese">${quote.chinese}</p>
+        `;
+        switchToPage('study-page');
+        ui.showScreen(dom.quoteContainer);
         return;
     }
 
