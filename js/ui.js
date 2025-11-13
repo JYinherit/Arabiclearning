@@ -19,7 +19,7 @@ let isCardListenerAdded = false;
  */
 export function showScreen(screen) {
     // 隐藏所有页面中的所有主要屏幕，以确保状态干净。
-    const allScreens = document.querySelectorAll('#start-screen, #card-container, #completion-screen');
+    const allScreens = document.querySelectorAll('#start-screen, #card-container, #completion-screen, #quote-container');
     allScreens.forEach(s => {
         if (s) {
             // 如果正在隐藏卡片容器，请确保回忆遮罩层也被隐藏并清除其计时器。

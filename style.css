@@ -1742,3 +1742,34 @@ body.theme-crimson-red {
 .study-scope-deck-list {
     padding-left: 1rem;
 }
+
+#quote-container {
+    text-align: center;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 50vh;
+}
+
+.quote-arabic {
+    font-size: 2.2rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    color: #2d3748;
+    line-height: 1.5;
+}
+
+.quote-chinese {
+    font-size: 1.3rem;
+    color: #4a5568;
+}
+
+.theme-night .quote-arabic {
+    color: #e0e0e0;
+}
+
+.theme-night .quote-chinese {
+    color: #a0a0a0;
+}
