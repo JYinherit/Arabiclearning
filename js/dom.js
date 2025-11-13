@@ -11,6 +11,7 @@ export const settingsPage = document.getElementById('settings-page');
 // --- 主要屏幕 ---
 export const startScreen = document.getElementById('start-screen');
 export const cardContainer = document.getElementById('card-container');
+export const proverbContainer = document.getElementById('proverb-container');
 export const completionScreen = document.getElementById('completion-screen');
 export const deckSelectionContainer = document.getElementById('deck-selection-container');
 export const skeletonLoader = document.getElementById('skeleton-loader');

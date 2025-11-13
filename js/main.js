@@ -1,3 +1,22 @@
+const ARABIC_PROVERBS = [
+    {
+        arabic: "اَلتَّكْرَارُ يُعَلِّمُ الْحِمَارَ",
+        chinese: "熟能生巧"
+    },
+    {
+        arabic: "اَلْوَقْتُ مِنْ ذَهَبٍ",
+        chinese: "一寸光阴一寸金"
+    },
+    {
+        arabic: "أَنْتَ نُورُ عَيْنِي",
+        chinese: "你是我眼中的光"
+    },
+    {
+        arabic: "مَنْ حَفَرَ حُفْرَةً لِأَخِيهِ وَقَعَ فِيهَا",
+        chinese: "害人反害己"
+    }
+];
+
 /**
  * @fileoverview 应用的主入口和控制器。
  * 该文件协调整个应用的生命周期，包括：
@@ -69,7 +88,8 @@ async function startSession(deckName, enableFsrs = false, options = {}) {
     await stats.onSessionStart();
 
     if (deckWords.length === 0) {
-        ui.showImportMessage('此词库中没有单词！', false);
+        switchToPage('study-page');
+        ui.displayProverb(ARABIC_PROVERBS);
         return;
     }
 
