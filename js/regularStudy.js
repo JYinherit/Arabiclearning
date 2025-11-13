@@ -69,6 +69,21 @@ export class RegularStudy {
         return 0;
     }
 
+    /**
+     * 计算今天所有词库学习的新单词总数。
+     * @returns {number} 今天学习的新单词总数。
+     */
+    getTotalTodayLearnedWords() {
+        const today = new Date().toISOString().split('T')[0];
+        let total = 0;
+        for (const record of this.learnedToday.values()) {
+            if (record.date === today) {
+                total += record.count;
+            }
+        }
+        return total;
+    }
+
     /** 
      * 为指定词库增加今天学习的新单词计数，并持久化结果。
      */
@@ -378,11 +393,19 @@ export class RegularStudy {
         const shuffledPart = this._generateTripleRandomQueue(wordsForRandomShuffle);
 
         const maxReviews = this.settings.maxReviewWords;
-        const dailyNew = this.settings.dailyNewWords;
+        const dailyNewLimit = this.settings.dailyNewWords;
 
         const reviewQueue = dueReviewWords.slice(0, maxReviews);
         
-        const newWordsQuota = isLearningNew ? dailyNew : Infinity;
+        let newWordsQuota;
+        if (isLearningNew) {
+            const totalLearnedToday = this.getTotalTodayLearnedWords();
+            const remainingNewWordsQuota = Math.max(0, dailyNewLimit - totalLearnedToday);
+            newWordsQuota = remainingNewWordsQuota;
+        } else {
+            newWordsQuota = Infinity; // For not-due words, no limit applies
+        }
+
         const remainingCapacity = Math.max(0, maxReviews - reviewQueue.length);
         
         const newPartCount = Math.min(shuffledPart.length, newWordsQuota, remainingCapacity);
