@@ -71,3 +71,17 @@ export const studyPlanModal = document.getElementById('study-plan-modal');
 export const studyPlanOptionsContainer = document.getElementById('study-plan-options-container');
 export const cancelStudyPlanBtn = document.getElementById('cancel-study-plan-btn');
 export const confirmStudyPlanBtn = document.getElementById('confirm-study-plan-btn');
+
+// --- TTS (文本转语音) ---
+export const ttsPlayBtn = document.getElementById('tts-play-btn');
+export const ttsEnableSetting = document.getElementById('tts-enable-setting');
+export const ttsAutoPlaySetting = document.getElementById('tts-autoplay-setting');
+export const ttsVoiceSelect = document.getElementById('tts-voice-select');
+export const ttsRateSetting = document.getElementById('tts-rate-setting');
+export const ttsRateValue = document.getElementById('tts-rate-value');
+export const ttsPitchSetting = document.getElementById('tts-pitch-setting');
+export const ttsPitchValue = document.getElementById('tts-pitch-value');
+export const ttsVolumeSetting = document.getElementById('tts-volume-setting');
+export const ttsVolumeValue = document.getElementById('tts-volume-value');
+export const ttsExplanationPlayBtn = document.getElementById('tts-explanation-play-btn');
+

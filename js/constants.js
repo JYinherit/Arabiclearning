@@ -15,5 +15,11 @@ export const STORAGE_KEYS = {
     THEME: 'theme',
     LAST_ACTIVE_DECK: 'last_active_deck',
     REGULAR_STUDY_STATS: 'regular_study_stats',
-    DEFAULT_STUDY_PLAN: 'default_study_plan'
+    DEFAULT_STUDY_PLAN: 'default_study_plan',
+    ARABIC_TTS_ENABLED: 'arabic_tts_enabled',
+    ARABIC_TTS_VOICE: 'arabic_tts_voice',
+    ARABIC_TTS_RATE: 'arabic_tts_rate',
+    ARABIC_TTS_PITCH: 'arabic_tts_pitch',
+    ARABIC_TTS_VOLUME: 'arabic_tts_volume',
+    ARABIC_TTS_AUTO_PLAY: 'arabic_tts_auto_play'
 };

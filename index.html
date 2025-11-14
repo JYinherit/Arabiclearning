@@ -29,11 +29,31 @@
                     
                     <!-- 闪卡内容将由JavaScript动态组织 -->
                     <div class="flashcard">
-                        <h2 id="word-display"></h2>
+                        <div id="word-display-wrapper">
+                            <h2 id="word-display"></h2>
+                            <button id="tts-play-btn" class="tts-play-btn" title="播放发音">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                        </div>
                         <div id="definition-toggle-container"></div>
                         <div id="answer-wrapper">
                             <div id="answer-display" class="spoiler" title="点击显示/隐藏答案"></div>
+                        <div id="explanation-wrapper">
                             <p id="explanation-display" class="spoiler"></p>
+                            <button id="tts-explanation-play-btn" class="tts-play-btn" title="播放解释中的发音" style="
+                                position: absolute; 
+                                right: 10px; 
+                                bottom: 10px;
+                                background: none;
+                                border: none;
+                                font-size: 1.2rem;
+                                cursor: pointer;
+                                color: #8892b0;
+                                z-index: 5;
+                            ">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                        </div>
                             <div id="recall-overlay" class="recall-overlay" style="display: none;">
                                 <div class="recall-circle-timer">
                                     <svg class="timer-svg" viewBox="0 0 100 100">
@@ -189,6 +209,45 @@
                     <div class="setting-item">
                         <label for="daily-new-words">每日新学习单词数</label>
                         <input type="number" id="daily-new-words" min="0" value="10">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>语音（TTS）设置</h3>
+                    <div id="tts-settings-container">
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="tts-enable-setting">
+                                <span class="checkbox-label">启用阿拉伯语发音</span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="tts-autoplay-setting">
+                                <span class="checkbox-label">自动播放发音</span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="tts-voice-select">选择语音</label>
+                            <select id="tts-voice-select">
+                                <option value="">加载中...</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="tts-rate-setting">语速</label>
+                            <input type="range" id="tts-rate-setting" min="0.5" max="2" step="0.1" value="0.8">
+                            <span id="tts-rate-value">0.8</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="tts-pitch-setting">音调</label>
+                            <input type="range" id="tts-pitch-setting" min="0" max="2" step="0.1" value="1">
+                            <span id="tts-pitch-value">1.0</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="tts-volume-setting">音量</label>
+                            <input type="range" id="tts-volume-setting" min="0" max="1" step="0.1" value="1">
+                            <span id="tts-volume-value">1.0</span>
+                        </div>
                     </div>
                 </div>
 

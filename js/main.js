@@ -17,6 +17,7 @@ import { setupRegularStudy } from './regularStudy.js';
 import { initImporter } from './importer.js';
 import { STORAGE_KEYS } from './constants.js';
 import { dbManager } from './db.js';
+import { ttsManager } from './TTS.js';
 
 /**
  * 更新主屏幕上的学习计划显示。
@@ -302,7 +303,13 @@ async function showNextWord() {
 
     currentWord = sessionQueue.shift();
     ui.displayCard(currentWord, currentModeRef.value);
-
+  
+    // 自动播放TTS
+    const autoPlay = await storage.getSetting(STORAGE_KEYS.ARABIC_TTS_AUTO_PLAY, true);
+    if (autoPlay && currentWord) {
+      ttsManager.playWord(currentWord);
+    }
+    
     // 如果启用了主动回忆，则显示遮罩。
     if (await storage.getSetting(STORAGE_KEYS.RECALL_MODE, false)) {
         ui.showRecallOverlay(5);
@@ -410,6 +417,9 @@ function renderDeckSelection() {
  * 处理从学习会话返回主菜单的逻辑。
  */
 async function goBackToMenu() {
+    // 停止TTS播放
+    ttsManager.stop();
+
     if (isSessionActiveRef.value) {
         const confirmMsg = isFsrsSession
             ? '您确定要退出当前的学习会话吗？进度将会保存。'
@@ -874,6 +884,9 @@ window.onload = async () => {
         currentDeckNameRef,
         isSessionActiveRef
     });
+
+    // 初始化TTS
+    await ttsManager.initialize();
 
     console.log('[Main] 应用已加载，所有模块已初始化。');
 

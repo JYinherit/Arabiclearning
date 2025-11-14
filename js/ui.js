@@ -8,6 +8,7 @@ import * as dom from './dom.js';
 import { saveSetting, getSetting } from './storage.js';
 import { STORAGE_KEYS } from './constants.js';
 import { updateStudyPlanDisplay } from './main.js';
+import { ttsManager } from './TTS.js';
 
 // ui.js模块级变量
 let isCardListenerAdded = false;
@@ -66,12 +67,24 @@ let _currentModeProvider = () => 'zh-ar';
  * @private
  */
 function _updateCardDefinition(definition, word) {
-    const { wordDisplay, answerDisplay, explanationDisplay } = dom;
+    const { wordDisplay, answerDisplay, explanationDisplay, wordDisplayWrapper } = dom;
     const mode = _currentModeProvider();
-    const isArZh = mode === 'ar-zh';
+    
+    let isArZh;
+    if (mode === 'mixed') {
+        // 混合模式：随机选择显示方向
+        isArZh = Math.random() < 0.5;
+    } else {
+        isArZh = mode === 'ar-zh';
+    }
 
     wordDisplay.innerHTML = (isArZh ? word.arabic : definition.chinese).replace(/\n/g, '<br>');
     answerDisplay.innerHTML = (isArZh ? definition.chinese : word.arabic).replace(/\n/g, '<br>');
+    
+    // 设置dir属性到wrapper，确保TTS按钮正确对齐
+    if (wordDisplayWrapper) {
+        wordDisplayWrapper.dir = isArZh ? 'rtl' : 'ltr';
+    }
     wordDisplay.dir = isArZh ? 'rtl' : 'ltr';
     answerDisplay.dir = isArZh ? 'ltr' : 'rtl';
     
@@ -141,6 +154,28 @@ export function displayCard(word, currentMode) {
     
     // 默认显示第一个义项。
     _updateCardDefinition(word.definitions[0], word);
+
+    // 添加播放按钮事件
+    if (dom.ttsPlayBtn) {
+      dom.ttsPlayBtn.onclick = () => {
+        if (word) ttsManager.playWord(word);
+      };
+    }
+
+    // 为解释中的TTS按钮添加事件
+    if (dom.ttsExplanationPlayBtn) {
+        dom.ttsExplanationPlayBtn.onclick = () => {
+            const explanationText = dom.explanationDisplay.textContent;
+            if (explanationText) {
+                // 正则表达式提取阿拉伯语字符、数字、空格和一些标点
+                const arabicParts = explanationText.match(/[\u0600-\u06FF\u0750-\u077F\s\d.,؟?!]+/g);
+                if (arabicParts) {
+                    const textToPlay = arabicParts.join(' ');
+                    ttsManager.play(textToPlay);
+                }
+            }
+        };
+    }
 }
 
 /** 切换闪卡上答案的可见性。 */
@@ -402,6 +437,104 @@ export function openContinueSessionModal(onConfirm, onDecline) {
 // --- 设置 UI ---
 
 /**
+ * 初始化TTS设置界面
+ */
+async function initTTSSettingsUI() {
+    if (!ttsManager.isTTSSupported()) {
+        const container = document.getElementById('tts-settings-container');
+        if (container) {
+            container.innerHTML = '<p>当前浏览器不支持语音合成。</p>';
+        }
+        return;
+    }
+
+    // 加载并设置保存的值
+    dom.ttsEnableSetting.checked = await getSetting(STORAGE_KEYS.ARABIC_TTS_ENABLED, false);
+    dom.ttsAutoPlaySetting.checked = await getSetting(STORAGE_KEYS.ARABIC_TTS_AUTO_PLAY, true);
+    
+    const rate = await getSetting(STORAGE_KEYS.ARABIC_TTS_RATE, 0.8);
+    dom.ttsRateSetting.value = rate;
+    if (dom.ttsRateValue) dom.ttsRateValue.textContent = rate;
+
+    const pitch = await getSetting(STORAGE_KEYS.ARABIC_TTS_PITCH, 1.0);
+    dom.ttsPitchSetting.value = pitch;
+    if (dom.ttsPitchValue) dom.ttsPitchValue.textContent = pitch;
+
+    const volume = await getSetting(STORAGE_KEYS.ARABIC_TTS_VOLUME, 1.0);
+    dom.ttsVolumeSetting.value = volume;
+    if (dom.ttsVolumeValue) dom.ttsVolumeValue.textContent = volume;
+
+    // 填充语音下拉列表
+    const groupedVoices = ttsManager.getGroupedVoices();
+    const savedVoiceURI = await getSetting(STORAGE_KEYS.ARABIC_TTS_VOICE);
+    
+    dom.ttsVoiceSelect.innerHTML = '';
+
+    const createOptGroup = (label, voices) => {
+        if (voices.length === 0) return;
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = label;
+        voices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.voiceURI;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            if (voice.voiceURI === savedVoiceURI) {
+                option.selected = true;
+            }
+            optgroup.appendChild(option);
+        });
+        dom.ttsVoiceSelect.appendChild(optgroup);
+    };
+
+    createOptGroup('推荐的阿拉伯语语音', groupedVoices.recommended);
+    createOptGroup('其他可用语音', groupedVoices.other);
+
+    if (dom.ttsVoiceSelect.innerHTML === '') {
+        dom.ttsVoiceSelect.innerHTML = '<option value="">无可用语音</option>';
+    }
+}
+
+/**
+ * 为TTS设置控件添加事件监听器
+ */
+function setupTTSSettingsListeners() {
+    if (!ttsManager.isTTSSupported()) return;
+
+    const handleSlider = (slider, valueDisplay, key) => {
+        if (slider) {
+            slider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value).toFixed(1);
+                if (valueDisplay) valueDisplay.textContent = value;
+                saveSetting(key, parseFloat(value));
+            });
+        }
+    };
+
+    if (dom.ttsEnableSetting) {
+        dom.ttsEnableSetting.addEventListener('change', (e) => {
+            saveSetting(STORAGE_KEYS.ARABIC_TTS_ENABLED, e.target.checked);
+        });
+    }
+
+    if (dom.ttsAutoPlaySetting) {
+        dom.ttsAutoPlaySetting.addEventListener('change', (e) => {
+            saveSetting(STORAGE_KEYS.ARABIC_TTS_AUTO_PLAY, e.target.checked);
+        });
+    }
+
+    if (dom.ttsVoiceSelect) {
+        dom.ttsVoiceSelect.addEventListener('change', (e) => {
+            saveSetting(STORAGE_KEYS.ARABIC_TTS_VOICE, e.target.value);
+        });
+    }
+
+    handleSlider(dom.ttsRateSetting, dom.ttsRateValue, STORAGE_KEYS.ARABIC_TTS_RATE);
+    handleSlider(dom.ttsPitchSetting, dom.ttsPitchValue, STORAGE_KEYS.ARABIC_TTS_PITCH);
+    handleSlider(dom.ttsVolumeSetting, dom.ttsVolumeValue, STORAGE_KEYS.ARABIC_TTS_VOLUME);
+}
+
+
+/**
  * 使用从存储中加载的值初始化设置 UI。
  */
 export async function initSettingsUI() {
@@ -428,6 +561,9 @@ export async function initSettingsUI() {
         themeSelect.value = settings[STORAGE_KEYS.THEME];
         applyTheme(settings[STORAGE_KEYS.THEME]);
     }
+    
+    // 初始化TTS设置
+    await initTTSSettingsUI();
 }
 
 /**
@@ -436,11 +572,19 @@ export async function initSettingsUI() {
 export function setupSettingsListeners() {
     if (!dom.settingsPage) return;
 
+    // 为TTS设置添加监听器
+    setupTTSSettingsListeners();
+
     dom.settingsPage.addEventListener('change', (e) => {
         const target = e.target;
         let key = null;
         let value = null;
         let callback = null;
+
+        // 避免在处理TTS滑块时重复保存
+        if (target.closest('#tts-settings-container')) {
+            return;
+        }
 
         if (target.matches('input[name="mode"]')) {
             key = STORAGE_KEYS.STUDY_MODE;
