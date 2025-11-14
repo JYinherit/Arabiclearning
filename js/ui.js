@@ -75,7 +75,7 @@ function _updateCardDefinition(definition, word) {
     wordDisplay.dir = isArZh ? 'rtl' : 'ltr';
     answerDisplay.dir = isArZh ? 'ltr' : 'rtl';
     
-    explanationDisplay.textContent = `💡 解释: ${definition.explanation}`;
+    explanationDisplay.innerHTML = `💡 解释: ${definition.explanation.replace(/\n/g, '<br>')}`;
 
     // 重置遮挡状态
     answerDisplay.classList.replace('revealed', 'spoiler');
