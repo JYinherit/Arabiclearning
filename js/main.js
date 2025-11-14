@@ -18,6 +18,43 @@ import { initImporter } from './importer.js';
 import { STORAGE_KEYS } from './constants.js';
 import { dbManager } from './db.js';
 
+/**
+ * 更新主屏幕上的学习计划显示。
+ */
+export async function updateStudyPlanDisplay() {
+    const plan = await storage.getSetting(STORAGE_KEYS.DEFAULT_STUDY_PLAN);
+    if (!plan) {
+        dom.studyPlanDisplay.innerHTML = '未设置默认学习计划。';
+        return;
+    }
+
+    const dailyNewWords = await storage.getSetting(STORAGE_KEYS.DAILY_NEW_WORDS, 10);
+    let wordList = [];
+
+    if (plan.type === 'global') {
+        wordList = vocabularyWords;
+    } else if (plan.type === 'collection') {
+        wordList = vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck.startsWith(plan.name + '//')));
+    } else if (plan.type === 'deck') {
+        wordList = vocabularyWords.filter(w => w.definitions.some(d => d.sourceDeck === plan.name));
+    }
+
+    const newWords = wordList.filter(w => !w.progress || w.progress.stage === 0);
+    const newWordCount = newWords.length;
+
+    let message = `当前计划: ${plan.name}`;
+    if (newWordCount === 0) {
+        message += ' (已完成)';
+    } else if (dailyNewWords > 0) {
+        const daysToComplete = Math.ceil(newWordCount / dailyNewWords);
+        const finishDate = new Date();
+        finishDate.setDate(finishDate.getDate() + daysToComplete);
+        message += ` (预计完成日期: ${finishDate.toISOString().split('T')[0]})`;
+    }
+
+    dom.studyPlanDisplay.innerHTML = message;
+}
+
 // --- 全局状态 ---
 const vocabularyWords = []; // 所有单词数据的唯一真实来源，在启动时加载。
 const currentDeckNameRef = { value: '' }; // 用于保存当前活动词库名称的引用对象。
@@ -454,6 +491,57 @@ function populateAndShowStudyScopeModal() {
 }
 
 /**
+ * 填充并显示用于选择默认学习计划的模态框。
+ */
+function populateAndShowStudyPlanModal() {
+    if (!regularStudyModule) return;
+
+    const collections = regularStudyModule.getCollectionsAndDecks();
+    const container = dom.studyPlanOptionsContainer;
+    container.innerHTML = ''; // 清空旧内容
+
+    const createRadioOption = (text, type, name, id) => {
+        const label = document.createElement('label');
+        label.className = 'study-plan-option';
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'study-plan';
+        radio.value = JSON.stringify({ type, name });
+        radio.id = id;
+
+        const span = document.createElement('span');
+        span.textContent = ` ${text}`;
+
+        label.appendChild(radio);
+        label.appendChild(span);
+        return label;
+    };
+
+    // 1. 添加全局选项
+    container.appendChild(createRadioOption('全局学习 (所有词库)', 'global', 'global', 'plan-global'));
+
+    // 2. 添加集合和词库选项
+    for (const [collectionName, decks] of collections.entries()) {
+        const collectionGroup = document.createElement('div');
+        collectionGroup.className = 'study-plan-collection-group';
+
+        // 添加集合选项
+        collectionGroup.appendChild(createRadioOption(collectionName, 'collection', collectionName, `plan-coll-${collectionName}`));
+
+        const deckList = document.createElement('div');
+        deckList.className = 'study-plan-deck-list';
+        for (const deckName of decks) {
+            const fullDeckName = `${collectionName}//${deckName}`;
+            deckList.appendChild(createRadioOption(deckName, 'deck', fullDeckName, `plan-deck-${fullDeckName}`));
+        }
+        collectionGroup.appendChild(deckList);
+        container.appendChild(collectionGroup);
+    }
+
+    dom.studyPlanModal.style.display = 'block';
+}
+
+/**
  * 切换规律学习模态框中的Tab。
  * @param {string} targetTabId - 要切换到的Tab的ID ('global', 'collection', 'deck')。
  */
@@ -567,6 +655,37 @@ function setupEventListeners() {
     if (dom.regularStudyBtn) {
         dom.regularStudyBtn.addEventListener('click', populateAndShowStudyScopeModal);
     }
+
+    // --- 切换学习计划模态框事件 ---
+    if (dom.switchStudyPlanBtn) {
+        dom.switchStudyPlanBtn.addEventListener('click', populateAndShowStudyPlanModal);
+    }
+    if (dom.cancelStudyPlanBtn) {
+        dom.cancelStudyPlanBtn.addEventListener('click', () => {
+            dom.studyPlanModal.style.display = 'none';
+        });
+    }
+    if (dom.confirmStudyPlanBtn) {
+        dom.confirmStudyPlanBtn.addEventListener('click', async () => {
+            const selectedOption = document.querySelector('input[name="study-plan"]:checked');
+            if (selectedOption) {
+                const plan = JSON.parse(selectedOption.value);
+                await storage.saveSetting(STORAGE_KEYS.DEFAULT_STUDY_PLAN, plan);
+                await updateStudyPlanDisplay();
+                dom.studyPlanModal.style.display = 'none';
+                ui.showImportMessage('默认学习计划已更新！', true);
+            } else {
+                ui.showImportMessage('请选择一个学习计划。', false);
+            }
+        });
+    }
+    const studyPlanModalCloseBtn = dom.studyPlanModal.querySelector('.close-button');
+    if (studyPlanModalCloseBtn) {
+        studyPlanModalCloseBtn.addEventListener('click', () => {
+            dom.studyPlanModal.style.display = 'none';
+        });
+    }
+
     regularStudyModalCloseBtn.addEventListener('click', () => {
         regularStudyScopeModal.style.display = 'none';
     });
@@ -758,16 +877,13 @@ window.onload = async () => {
 
     console.log('[Main] 应用已加载，所有模块已初始化。');
 
-    // 尝试自动开始一个会话，如果失败则回退到手动选择。
-    try {
-        await triggerRegularStudy(false);
-    } catch (error) {
-        console.error('[Main] 在自动开始序列中发生严重故障。正在恢复到手动模式。', error);
-        // 清理任何可能已部分初始化的会话状态，以避免脏数据。
-        isSessionActiveRef.value = false;
-        if (currentDeckNameRef.value) {
-            await storage.clearSessionState(currentDeckNameRef.value);
-        }
+    const defaultPlan = await storage.getSetting(STORAGE_KEYS.DEFAULT_STUDY_PLAN);
+    await updateStudyPlanDisplay();
+    if (defaultPlan) {
+        console.log('[Main] 发现默认学习计划，自动开始学习...');
+        await regularStudyModule.startScopedStudy([defaultPlan]);
+    } else {
+        console.log('[Main] 未发现默认学习计划，显示手动选择界面。');
         showManualDeckSelection();
     }
 };

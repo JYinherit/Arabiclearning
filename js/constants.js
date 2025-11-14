@@ -14,5 +14,6 @@ export const STORAGE_KEYS = {
     DAILY_NEW_WORDS: 'daily_new_words',
     THEME: 'theme',
     LAST_ACTIVE_DECK: 'last_active_deck',
-    REGULAR_STUDY_STATS: 'regular_study_stats'
+    REGULAR_STUDY_STATS: 'regular_study_stats',
+    DEFAULT_STUDY_PLAN: 'default_study_plan'
 };

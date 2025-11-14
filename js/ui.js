@@ -7,6 +7,7 @@
 import * as dom from './dom.js';
 import { saveSetting, getSetting } from './storage.js';
 import { STORAGE_KEYS } from './constants.js';
+import { updateStudyPlanDisplay } from './main.js';
 
 // ui.js模块级变量
 let isCardListenerAdded = false;
@@ -453,6 +454,7 @@ export function setupSettingsListeners() {
         } else if (target.matches('#daily-new-words')) {
             key = STORAGE_KEYS.DAILY_NEW_WORDS;
             value = parseInt(target.value, 10) || 10;
+            callback = updateStudyPlanDisplay;
         } else if (target.matches('#theme-select')) {
             key = STORAGE_KEYS.THEME;
             value = target.value;
