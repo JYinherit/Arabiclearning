@@ -80,8 +80,12 @@
                     <div id="regular-study-section" class="feature-section">
                         <h3>规律学习</h3>
                         <p>每日新单词 + 智能复习计划</p>
+                        <div id="study-plan-display" class="study-plan-display"></div>
                         <button id="regular-study-btn" class="btn feature-btn">
                             📅 开始规律学习
+                        </button>
+                        <button id="switch-study-plan-btn" class="btn feature-btn secondary-btn">
+                            🔄 切换学习计划
                         </button>
                     </div>
 
@@ -338,6 +342,22 @@
     </div>
 
     <div id="notification-container"></div>
+
+    <!-- 新增：切换学习计划模态框 -->
+    <div id="study-plan-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>切换学习计划</h2>
+            <p class="modal-subtitle">选择一个默认的学习计划，应用启动时将自动开始。</p>
+            <div id="study-plan-options-container">
+                <!-- 学习计划选项将由JS动态加载 -->
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-study-plan-btn" class="btn btn-secondary">取消</button>
+                <button id="confirm-study-plan-btn" class="btn">确认</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="js/update.js"></script>
     <script type="module" src="js/main.js"></script>
