@@ -1742,3 +1742,53 @@ body.theme-crimson-red {
 .study-scope-deck-list {
     padding-left: 1rem;
 }
+
+.secondary-btn {
+    background: var(--secondary-button-color);
+    color: var(--secondary-button-text-color);
+    margin-top: 10px;
+}
+
+.study-plan-display {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: var(--background-color);
+    border-radius: 8px;
+    color: var(--text-color-secondary);
+    font-size: 0.9em;
+}
+
+#study-plan-modal .modal-content {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+#study-plan-options-container {
+    text-align: left;
+    margin-top: 20px;
+}
+
+.study-plan-option {
+    display: block;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.study-plan-option:hover {
+    background-color: var(--hover-color);
+}
+
+.study-plan-collection-group {
+    margin-top: 15px;
+    padding-left: 15px;
+    border-left: 2px solid var(--primary-color);
+}
+
+.study-plan-deck-list {
+    margin-top: 10px;
+    padding-left: 20px;
+}
