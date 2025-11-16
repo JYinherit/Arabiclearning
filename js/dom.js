@@ -11,6 +11,8 @@ export const settingsPage = document.getElementById('settings-page');
 // --- 主要屏幕 ---
 export const startScreen = document.getElementById('start-screen');
 export const cardContainer = document.getElementById('card-container');
+export const switchStudyPlanBtn = document.getElementById('switch-study-plan-btn');
+export const studyPlanDisplay = document.getElementById('study-plan-display');
 export const completionScreen = document.getElementById('completion-screen');
 export const deckSelectionContainer = document.getElementById('deck-selection-container');
 export const skeletonLoader = document.getElementById('skeleton-loader');
@@ -64,3 +66,22 @@ export const executeClearDataBtn = document.getElementById('execute-clear-data-b
 export const continueSessionModal = document.getElementById('continue-session-modal');
 export const confirmContinueBtn = document.getElementById('confirm-continue-btn');
 export const declineContinueBtn = document.getElementById('decline-continue-btn');
+export const regularStudyScopeModal = document.getElementById('regular-study-scope-modal');
+export const studyPlanModal = document.getElementById('study-plan-modal');
+export const studyPlanOptionsContainer = document.getElementById('study-plan-options-container');
+export const cancelStudyPlanBtn = document.getElementById('cancel-study-plan-btn');
+export const confirmStudyPlanBtn = document.getElementById('confirm-study-plan-btn');
+
+// --- TTS (文本转语音) ---
+export const ttsPlayBtn = document.getElementById('tts-play-btn');
+export const ttsEnableSetting = document.getElementById('tts-enable-setting');
+export const ttsAutoPlaySetting = document.getElementById('tts-autoplay-setting');
+export const ttsVoiceSelect = document.getElementById('tts-voice-select');
+export const ttsRateSetting = document.getElementById('tts-rate-setting');
+export const ttsRateValue = document.getElementById('tts-rate-value');
+export const ttsPitchSetting = document.getElementById('tts-pitch-setting');
+export const ttsPitchValue = document.getElementById('tts-pitch-value');
+export const ttsVolumeSetting = document.getElementById('tts-volume-setting');
+export const ttsVolumeValue = document.getElementById('tts-volume-value');
+export const ttsExplanationPlayBtn = document.getElementById('tts-explanation-play-btn');
+
