@@ -23,9 +23,10 @@
             <div class="page-content">
                 <div id="card-container">
                     <!-- 进度条 -->
-                                    <div id="progress-container">
-                                        <!-- Progress bar will be rendered here by ProgressBar.js -->
-                                    </div>                    
+                    <div id="progress-container">
+                        <div id="progress-bar">0%</div>
+                    </div>
+                    
                     <!-- 闪卡内容将由JavaScript动态组织 -->
                     <div class="flashcard">
                         <div id="word-display-wrapper">
@@ -283,18 +284,6 @@
         </div>
     </div>
 
-    <!-- Error Reporting Modal -->
-    <div id="error-modal" class="modal" style="z-index: 9999;">
-        <div class="modal-content">
-            <h2>应用启动时发生严重错误</h2>
-            <p>请复制以下错误信息并发送给开发者。</p>
-            <pre id="error-modal-text" class="error-text-box"></pre>
-            <div class="modal-actions">
-                <button id="copy-error-btn" class="btn">复制错误信息</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 底部导航栏 -->
     <nav class="bottom-nav">
         <button class="nav-btn" data-page="study-page">
@@ -429,7 +418,7 @@
         </div>
     </div>
 
-    <script type="module" src="src/main.js"></script>
+    <script type="module" src="../src/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

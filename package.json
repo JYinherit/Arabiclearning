@@ -4,7 +4,8 @@
   "description": "个人使用的阿拉伯语背诵辅助，日后拓展到各个小语种并拓展功能，希望可以帮助更多人学习",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "vite",
+    "build": "vite build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,7 +19,10 @@
   },
   "homepage": "https://github.com/OctagonalStar/Arabiclearning#readme",
   "devDependencies": {
-    "electron": "^38.2.0"
+    "electron": "^38.2.0",
+    "vite": "^7.2.4",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
