@@ -57,6 +57,9 @@ export class StudyCard {
         this.container.style.display = 'block';
         this._setupDefinitionToggles();
         this._updateView(0); // Display the first definition by default
+
+        // Notify that a new word is being shown
+        this.eventBus.emit('wordShown', this.word);
     }
 
     /**

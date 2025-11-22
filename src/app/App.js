@@ -131,6 +131,9 @@ export class App {
                 onStudyPlanChange: this._updateStudyPlanDisplay.bind(this) 
             });
 
+            // Initialize Card Controller
+            cardController.initCardController(this.storageService);
+
             console.log('Application loaded. Determining start screen...');
             
             const defaultPlan = await this.storageService.getSetting(STORAGE_KEYS.DEFAULT_STUDY_PLAN);
@@ -205,6 +208,9 @@ export class App {
         this.eventBus.on('reviewModeChanged', ({ isReviewing }) => {
             if (isReviewing) cardController.enterReviewMode();
             else cardController.exitReviewMode();
+        });
+        this.eventBus.on('wordShown', (word) => {
+            cardController.setCurrentWord(word.arabic);
         });
 
         // Mistake Notebook Events
