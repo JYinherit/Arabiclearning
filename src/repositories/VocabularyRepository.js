@@ -126,4 +126,19 @@ export class VocabularyRepository {
         this._cache.words = null;
         this._cache.timestamp = 0;
     }
+
+    /**
+     * 根据阿拉伯语单词列表检索 Word 对象。
+     * @param {Array<string>} arabicList - 阿拉伯语单词列表。
+     * @returns {Promise<Array<Word>>} 匹配的 Word 对象数组。
+     */
+    async getWordsByArabic(arabicList) {
+        const allWords = await this.getAll();
+        // 创建一个 Map 以实现 O(1) 查找
+        const wordMap = new Map(allWords.map(w => [w.arabic, w]));
+
+        return arabicList
+            .map(arabic => wordMap.get(arabic))
+            .filter(Boolean); // 过滤掉未找到的单词
+    }
 }

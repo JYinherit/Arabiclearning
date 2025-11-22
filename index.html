@@ -429,6 +429,20 @@
         </div>
     </div>
 
+    <!-- Deck Management / Word Browser Modal -->
+    <div id="deck-manage-modal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close-button">&times;</span>
+            <h2 id="deck-manage-title">管理词库</h2>
+            <div id="deck-manage-search-bar" style="margin-bottom: 10px;">
+                <input type="text" id="deck-manage-search-input" placeholder="搜索单词..." style="width: 100%; padding: 8px; box-sizing: border-box;">
+            </div>
+            <div id="deck-word-list" class="scrollable-list">
+                <!-- Word items will be rendered here -->
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="src/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

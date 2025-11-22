@@ -22,12 +22,57 @@ export class DeckList {
      * 渲染词库和集合的列表。
      * @param {object} collections - 一个包含集合和其下子词库信息的对象。
      *   格式: { collectionName: { wordCount: number, subDecks: { deckName: { wordCount: number } } } }
+     * @param {object} [mistakeNotebookData=null] - 错题本数据 { count: number }
      */
-    render(collections) {
+    render(collections, mistakeNotebookData = null) {
         this.container.innerHTML = ''; // 清空现有内容
 
+        // Render Mistake Notebook at the top if it exists
+        if (mistakeNotebookData) {
+            const mistakeDiv = document.createElement('div');
+            mistakeDiv.className = 'collection-container mistake-notebook-container';
+            mistakeDiv.style.border = '2px solid #ff6b6b'; // Distinct styling
+            mistakeDiv.style.marginBottom = '15px';
+
+            const header = document.createElement('div');
+            header.className = 'collection-header';
+            header.style.justifyContent = 'space-between';
+            header.style.display = 'flex';
+            header.style.alignItems = 'center';
+
+            const title = document.createElement('span');
+            title.textContent = `📕 错题本 (${mistakeNotebookData.count}词)`;
+            title.style.fontWeight = 'bold';
+            title.style.color = '#d63031';
+            header.appendChild(title);
+
+            const btnGroup = document.createElement('div');
+
+            const studyButton = document.createElement('button');
+            studyButton.textContent = '强化复习';
+            studyButton.className = 'btn btn-small study-mistake-btn';
+            studyButton.disabled = mistakeNotebookData.count === 0;
+
+            // Manage Button for Mistake Notebook
+            const manageBtn = document.createElement('button');
+            manageBtn.textContent = '📖';
+            manageBtn.className = 'btn btn-small manage-deck-btn';
+            manageBtn.style.marginLeft = '5px';
+            manageBtn.title = '管理错题本';
+            manageBtn.dataset.deckName = 'mistake-notebook'; // Special ID
+
+            btnGroup.appendChild(studyButton);
+            btnGroup.appendChild(manageBtn);
+
+            header.appendChild(btnGroup);
+            mistakeDiv.appendChild(header);
+            this.container.appendChild(mistakeDiv);
+        }
+
         if (!collections || Object.keys(collections).length === 0) {
-            this.container.innerHTML = '<p>没有可用的词库。请先导入一个词库文件。</p>';
+            const msg = document.createElement('p');
+            msg.textContent = '没有可用的词库。请先导入一个词库文件。';
+            this.container.appendChild(msg);
             return;
         }
 
@@ -67,12 +112,30 @@ export class DeckList {
 
         for (const deckName in collection.subDecks) {
             const subDeck = collection.subDecks[deckName];
+
+            const deckWrapper = document.createElement('div');
+            deckWrapper.style.display = 'flex';
+            deckWrapper.style.alignItems = 'center';
+            deckWrapper.style.marginBottom = '5px';
+
             const button = document.createElement('button');
             button.textContent = `${deckName} (${subDeck.wordCount}词)`;
             button.className = 'btn deck-btn';
+            button.style.flexGrow = '1';
             button.disabled = subDeck.wordCount === 0;
             button.dataset.deckName = `${collectionName}//${deckName}`;
-            subDecksContainer.appendChild(button);
+
+            // Browse/Manage Button (📖)
+            const manageBtn = document.createElement('button');
+            manageBtn.textContent = '📖';
+            manageBtn.className = 'btn btn-small manage-deck-btn';
+            manageBtn.style.marginLeft = '5px';
+            manageBtn.title = '浏览单词 / 管理错题';
+            manageBtn.dataset.deckName = `${collectionName}//${deckName}`;
+
+            deckWrapper.appendChild(button);
+            deckWrapper.appendChild(manageBtn);
+            subDecksContainer.appendChild(deckWrapper);
         }
 
         details.appendChild(subDecksContainer);
@@ -97,6 +160,15 @@ export class DeckList {
             if (deckName && this.eventBus) {
                 this.eventBus.emit('deckSelected', deckName);
             }
+        } else if (target.matches('.study-mistake-btn')) {
+             if (this.eventBus) {
+                this.eventBus.emit('mistakeSessionStart');
+             }
+        } else if (target.matches('.manage-deck-btn')) {
+            const deckName = target.dataset.deckName;
+             if (this.eventBus) {
+                this.eventBus.emit('manageDeck', deckName);
+             }
         }
     }
 }
