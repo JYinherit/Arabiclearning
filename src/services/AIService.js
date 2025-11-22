@@ -58,17 +58,25 @@ export class AIService {
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder('utf-8');
+            let buffer = '';
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
+                buffer += chunk;
+
+                const lines = buffer.split('\n');
+                // Keep the last incomplete line in the buffer
+                buffer = lines.pop() || '';
 
                 for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) continue;
+
+                    if (trimmedLine.startsWith('data: ')) {
+                        const data = trimmedLine.slice(6);
                         if (data === '[DONE]') continue;
 
                         try {
@@ -81,6 +89,20 @@ export class AIService {
                             console.warn('Error parsing stream chunk:', e);
                         }
                     }
+                }
+            }
+
+            // Process any remaining data in buffer (though usually SSE ends with newlines)
+            if (buffer.startsWith('data: ') && buffer !== 'data: [DONE]') {
+                 try {
+                    const data = buffer.slice(6);
+                    const json = JSON.parse(data);
+                    const content = json.choices[0]?.delta?.content || '';
+                    if (content) {
+                        onChunk(content);
+                    }
+                } catch (e) {
+                    // Ignore incomplete JSON at the very end
                 }
             }
 

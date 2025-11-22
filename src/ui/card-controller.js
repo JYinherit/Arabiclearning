@@ -7,6 +7,7 @@ import * as dom from './dom-elements.js';
 import { showScreen } from './screen-manager.js';
 import { AIService } from '../services/AIService.js';
 import { STORAGE_KEYS, DEFAULT_AI_PROMPT } from '../common/constants.js';
+import { showNotification } from './notifications.js';
 
 let recallTimer = null;
 let countdownInterval = null;
@@ -28,6 +29,40 @@ export function initCardController(storageService) {
  */
 export function setCurrentWord(word) {
     currentWord = word;
+}
+
+/**
+ * Helper function to copy text to clipboard with fallback.
+ * @param {string} text - The text to copy.
+ * @returns {Promise<boolean>} - True if successful, false otherwise.
+ */
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        return true;
+    } catch (err) {
+        console.warn('navigator.clipboard failed, trying fallback:', err);
+        try {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+
+            // Ensure it's not visible but part of the DOM
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+
+            textArea.focus();
+            textArea.select();
+
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            return successful;
+        } catch (fallbackErr) {
+            console.error('Fallback copy failed:', fallbackErr);
+            return false;
+        }
+    }
 }
 
 /**
@@ -64,11 +99,14 @@ function setupAIListeners() {
     }
 
     if (copyAiBtn) {
-        copyAiBtn.addEventListener('click', () => {
+        copyAiBtn.addEventListener('click', async () => {
             if (aiContent && aiContent.textContent) {
-                navigator.clipboard.writeText(aiContent.textContent)
-                    .then(() => showNotification('已复制到剪贴板', 'success'))
-                    .catch(() => showNotification('复制失败', 'error'));
+                const success = await copyToClipboard(aiContent.textContent);
+                if (success) {
+                    showNotification('已复制到剪贴板', true);
+                } else {
+                    showNotification('复制失败', false);
+                }
             }
         });
     }
@@ -88,9 +126,12 @@ async function handleAIAssist() {
     // If API Key is missing, fallback to Copy Prompt
     if (!apiKey) {
         const prompt = AIService.constructPrompt(promptTemplate, currentWord);
-        navigator.clipboard.writeText(prompt)
-            .then(() => showNotification('API 未配置，已复制提示词到剪贴板', 'success'))
-            .catch(() => showNotification('复制失败', 'error'));
+        const success = await copyToClipboard(prompt);
+        if (success) {
+            showNotification('API 未配置，已复制提示词到剪贴板', true);
+        } else {
+            showNotification('复制失败，请检查浏览器权限', false);
+        }
         return;
     }
 
@@ -127,21 +168,6 @@ async function handleAIAssist() {
             }
         );
     }
-}
-
-function showNotification(message, type = 'info') {
-    const container = document.getElementById('notification-container');
-    if (!container) return;
-
-    const notification = document.createElement('div');
-    notification.className = `import-message ${type === 'error' ? 'import-error' : 'import-success'}`;
-    notification.textContent = message;
-
-    container.appendChild(notification);
-
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
 }
 
 
