@@ -4,7 +4,7 @@
  */
 
 import * as dom from './dom-elements.js';
-import { STORAGE_KEYS } from '../common/constants.js';
+import { STORAGE_KEYS, DEFAULT_AI_PROMPT } from '../common/constants.js';
 
 let storageSvc = null;
 let ttsMgr = null;
@@ -118,6 +118,25 @@ function setupTTSSettingsListeners() {
 }
 
 /**
+ * Initializes the AI settings UI section.
+ */
+async function initAISettingsUI() {
+    const aiApiUrl = document.getElementById('ai-api-url');
+    const aiApiKey = document.getElementById('ai-api-key');
+    const aiModel = document.getElementById('ai-model');
+    const aiPromptTemplate = document.getElementById('ai-prompt-template');
+
+    if (aiApiUrl) aiApiUrl.value = await storageSvc.getSetting(STORAGE_KEYS.AI_API_URL, '');
+    if (aiApiKey) aiApiKey.value = await storageSvc.getSetting(STORAGE_KEYS.AI_API_KEY, '');
+    if (aiModel) aiModel.value = await storageSvc.getSetting(STORAGE_KEYS.AI_MODEL, 'gpt-3.5-turbo');
+
+    const savedPrompt = await storageSvc.getSetting(STORAGE_KEYS.AI_PROMPT_TEMPLATE);
+    if (aiPromptTemplate) {
+        aiPromptTemplate.value = savedPrompt || DEFAULT_AI_PROMPT;
+    }
+}
+
+/**
  * Initializes the settings UI with values loaded from storage.
  * @param {import('../infrastructure/StorageService.js').StorageService} storageService
  * @param {import('../infrastructure/TTSManager.js').TTSManager} ttsManager
@@ -153,6 +172,7 @@ export async function initSettingsUI(storageService, ttsManager) {
     }
     
     await initTTSSettingsUI();
+    await initAISettingsUI();
 }
 
 /**
@@ -192,6 +212,18 @@ export function setupSettingsListeners({ onStudyPlanChange } = {}) {
             key = STORAGE_KEYS.THEME;
             value = target.value;
             callback = () => applyTheme(value);
+        } else if (target.matches('#ai-api-url')) {
+            key = STORAGE_KEYS.AI_API_URL;
+            value = target.value;
+        } else if (target.matches('#ai-api-key')) {
+            key = STORAGE_KEYS.AI_API_KEY;
+            value = target.value;
+        } else if (target.matches('#ai-model')) {
+            key = STORAGE_KEYS.AI_MODEL;
+            value = target.value;
+        } else if (target.matches('#ai-prompt-template')) {
+            key = STORAGE_KEYS.AI_PROMPT_TEMPLATE;
+            value = target.value;
         }
 
         if (key !== null) {

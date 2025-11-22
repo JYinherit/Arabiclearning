@@ -5,9 +5,145 @@
 
 import * as dom from './dom-elements.js';
 import { showScreen } from './screen-manager.js';
+import { AIService } from '../services/AIService.js';
+import { STORAGE_KEYS, DEFAULT_AI_PROMPT } from '../common/constants.js';
 
 let recallTimer = null;
 let countdownInterval = null;
+let storageSvc = null;
+let currentWord = null;
+
+/**
+ * Initializes the Card Controller with dependencies.
+ * @param {import('../infrastructure/StorageService.js').StorageService} storageService
+ */
+export function initCardController(storageService) {
+    storageSvc = storageService;
+    setupAIListeners();
+}
+
+/**
+ * Updates the current word being studied.
+ * @param {string} word - The current word.
+ */
+export function setCurrentWord(word) {
+    currentWord = word;
+}
+
+/**
+ * Sets up event listeners for AI features.
+ */
+function setupAIListeners() {
+    const aiBtn = document.getElementById('ai-assist-btn');
+    const aiModal = document.getElementById('ai-result-modal');
+    const closeAiBtn = document.getElementById('close-ai-result-btn');
+    const copyAiBtn = document.getElementById('copy-ai-result-btn');
+    const aiContent = document.getElementById('ai-result-content');
+    const modalCloseBtn = aiModal ? aiModal.querySelector('.close-button') : null;
+
+    if (aiBtn) {
+        aiBtn.addEventListener('click', async (e) => {
+            e.stopPropagation(); // Prevent triggering other card clicks if any
+            await handleAIAssist();
+        });
+    }
+
+    const closeModal = () => {
+        if (aiModal) aiModal.style.display = 'none';
+    };
+
+    if (closeAiBtn) closeAiBtn.addEventListener('click', closeModal);
+    if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+
+    if (aiModal) {
+        window.addEventListener('click', (e) => {
+            if (e.target === aiModal) {
+                closeModal();
+            }
+        });
+    }
+
+    if (copyAiBtn) {
+        copyAiBtn.addEventListener('click', () => {
+            if (aiContent && aiContent.textContent) {
+                navigator.clipboard.writeText(aiContent.textContent)
+                    .then(() => showNotification('已复制到剪贴板', 'success'))
+                    .catch(() => showNotification('复制失败', 'error'));
+            }
+        });
+    }
+}
+
+/**
+ * Handles the AI Assistant button click.
+ */
+async function handleAIAssist() {
+    if (!currentWord) return;
+
+    const apiKey = await storageSvc.getSetting(STORAGE_KEYS.AI_API_KEY);
+    const apiUrl = await storageSvc.getSetting(STORAGE_KEYS.AI_API_URL);
+    const model = await storageSvc.getSetting(STORAGE_KEYS.AI_MODEL);
+    const promptTemplate = await storageSvc.getSetting(STORAGE_KEYS.AI_PROMPT_TEMPLATE) || DEFAULT_AI_PROMPT;
+
+    // If API Key is missing, fallback to Copy Prompt
+    if (!apiKey) {
+        const prompt = AIService.constructPrompt(promptTemplate, currentWord);
+        navigator.clipboard.writeText(prompt)
+            .then(() => showNotification('API 未配置，已复制提示词到剪贴板', 'success'))
+            .catch(() => showNotification('复制失败', 'error'));
+        return;
+    }
+
+    // If API is configured, open modal and stream
+    const aiModal = document.getElementById('ai-result-modal');
+    const aiContent = document.getElementById('ai-result-content');
+
+    if (aiModal && aiContent) {
+        aiContent.textContent = '正在思考中...\n';
+        aiModal.style.display = 'block';
+
+        await AIService.generateExplanation(
+            {
+                word: currentWord,
+                apiUrl,
+                apiKey,
+                model,
+                promptTemplate
+            },
+            (chunk) => {
+                // If it's the first chunk, clear the "Thinking..." text
+                if (aiContent.textContent === '正在思考中...\n') {
+                    aiContent.textContent = '';
+                }
+                aiContent.textContent += chunk;
+                // Auto scroll to bottom
+                aiContent.scrollTop = aiContent.scrollHeight;
+            },
+            (error) => {
+                aiContent.textContent += `\n\n[错误]: ${error.message}`;
+            },
+            () => {
+                // Completion callback
+            }
+        );
+    }
+}
+
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+
+    const notification = document.createElement('div');
+    notification.className = `import-message ${type === 'error' ? 'import-error' : 'import-success'}`;
+    notification.textContent = message;
+
+    container.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
 
 /** 
  * 显示主动回忆遮罩层，并开始倒计时。
