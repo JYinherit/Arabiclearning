@@ -21,5 +21,6 @@ export const STORAGE_KEYS = {
     ARABIC_TTS_RATE: 'arabic_tts_rate',
     ARABIC_TTS_PITCH: 'arabic_tts_pitch',
     ARABIC_TTS_VOLUME: 'arabic_tts_volume',
-    ARABIC_TTS_AUTO_PLAY: 'arabic_tts_auto_play'
+    ARABIC_TTS_AUTO_PLAY: 'arabic_tts_auto_play',
+    MISTAKE_NOTEBOOK: 'mistake_notebook_words'
 };
