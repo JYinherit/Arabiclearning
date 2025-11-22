@@ -17,13 +17,14 @@ export class SessionManager {
      * @param {import('../infrastructure/EventBus.js').EventBus} dependencies.eventBus
      * @param {import('../infrastructure/ErrorHandler.js').ErrorHandler} dependencies.errorHandler
      */
-    constructor({ storageService, statsService, ttsManager, studyCardComponent, progressBarComponent, eventBus, errorHandler }) {
+    constructor({ storageService, statsService, ttsManager, studyCardComponent, progressBarComponent, eventBus, errorHandler, mistakeRepository }) {
         // --- Services & Infrastructure ---
         this.storageService = storageService;
         this.statsService = statsService;
         this.ttsManager = ttsManager;
         this.eventBus = eventBus;
         this.errorHandler = errorHandler;
+        this.mistakeRepository = mistakeRepository;
 
         // --- UI Components (as dependencies) ---
         this.studyCardComponent = studyCardComponent;
@@ -63,6 +64,7 @@ export class SessionManager {
         this.isSessionActive = false;
         this.currentDeckName = '';
         this.currentMode = 'zh-ar';
+        this.sessionMistakeCounts = new Map(); // Track 'Again' counts per word
     }
 
     /**
@@ -176,6 +178,18 @@ export class SessionManager {
 
     async handleRating(rating) {
         if (!this.currentWord || this.isReviewingHistory) return;
+
+        // Track mistakes for "Mistake Notebook" auto-addition
+        if (rating === RATING.AGAIN) { // AGAIN corresponds to Forget/Hard fail
+            const currentCount = (this.sessionMistakeCounts.get(this.currentWord.arabic) || 0) + 1;
+            this.sessionMistakeCounts.set(this.currentWord.arabic, currentCount);
+
+            if (currentCount === 4 && this.mistakeRepository) {
+                console.log(`[SessionManager] Word ${this.currentWord.arabic} hit 4 mistakes. Adding to Mistake Notebook.`);
+                await this.mistakeRepository.addWord(this.currentWord.arabic);
+                // Optional: Notify user via EventBus if we had a notification system capable of subtle toasts
+            }
+        }
 
         if (this.isFsrsSession) {
             const { card: updatedWord, isNewCard } = this.scheduler.processReview(this.currentWord, rating);

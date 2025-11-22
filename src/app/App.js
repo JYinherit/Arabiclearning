@@ -17,6 +17,7 @@ import { StatsService } from '../services/StatsService.js';
 
 // Repositories
 import { VocabularyRepository } from '../repositories/VocabularyRepository.js';
+import { MistakeRepository } from '../repositories/MistakeRepository.js';
 
 // Core Logic & Models
 import { Word } from '../core/Word.js';
@@ -32,6 +33,7 @@ import { StudyCard } from '../components/StudyCard.js';
 import { ProgressBar } from '../components/ProgressBar.js';
 import { ImportController } from '../ui/import-controller.js';
 import { UpdateController } from '../ui/update-controller.js';
+import { DeckManageController } from '../ui/deck-manage-controller.js';
 import * as dom from '../ui/dom-elements.js';
 import * as modals from '../ui/modal-manager.js';
 import { showNotification } from '../ui/notifications.js';
@@ -57,11 +59,13 @@ export class App {
         
         // --- Repositories ---
         this.vocabularyRepository = new VocabularyRepository(this.dbManager);
+        this.mistakeRepository = new MistakeRepository(this.storageService);
 
         // --- UI Components & Controllers ---
         this.studyCardComponent = new StudyCard(dom.cardContainer, this.eventBus);
         this.progressBarComponent = new ProgressBar(dom.progressContainer);
         this.deckListComponent = new DeckList(dom.deckSelectionContainer, this.eventBus);
+        this.deckManageController = new DeckManageController(this.vocabularyRepository, this.mistakeRepository);
         
         // --- Core Logic ---
         this.sessionManager = new SessionManager({
@@ -72,6 +76,7 @@ export class App {
             progressBarComponent: this.progressBarComponent,
             eventBus: this.eventBus,
             errorHandler: this.errorHandler,
+            mistakeRepository: this.mistakeRepository,
         });
 
         // --- Use Cases ---
@@ -201,6 +206,11 @@ export class App {
             if (isReviewing) cardController.enterReviewMode();
             else cardController.exitReviewMode();
         });
+
+        // Mistake Notebook Events
+        this.eventBus.on('mistakeSessionStart', () => this._startMistakeSession());
+        this.eventBus.on('manageDeck', (deckName) => this.deckManageController.open(deckName, this.vocabularyWords));
+
         console.log('[DEBUG] Event Bus listeners setup complete.');
 
         // --- DOM Event Listeners (for UI outside of components) ---
@@ -331,7 +341,7 @@ export class App {
 
     // --- UI Rendering & Helpers ---
 
-    _renderDeckSelection() {
+    async _renderDeckSelection() {
         const collections = this.vocabularyWords.reduce((acc, word) => {
             word.definitions.forEach(def => {
                 const [collectionName, deckName] = def.sourceDeck.split('//');
@@ -351,7 +361,12 @@ export class App {
                 coll.subDecks[deckName] = { wordCount: coll.subDecks[deckName].size };
             }
         }
-        this.deckListComponent.render(collections);
+
+        // Load Mistake Notebook Stats
+        const mistakeCount = await this.mistakeRepository.getCount();
+        const mistakeData = { count: mistakeCount };
+
+        this.deckListComponent.render(collections, mistakeData);
         screenManager.showScreen(dom.startScreen);
     }
 
@@ -449,6 +464,37 @@ export class App {
         if (!success) {
             showNotification('太棒了，所选范围内今天没有需要复习或学习的单词！', true);
         }
+    }
+
+    async _startMistakeSession() {
+        const mistakeWords = await this.mistakeRepository.getAllWords();
+        if (mistakeWords.length === 0) {
+            showNotification('错题本为空！', false);
+            return;
+        }
+
+        const fullWords = await this.vocabularyRepository.getWordsByArabic(mistakeWords);
+
+        if (fullWords.length === 0) {
+            showNotification('无法加载错题单词（可能已被删除）。', false);
+            return;
+        }
+
+        // Mistake notebook is purely for practice, so no FSRS updates (Option A)
+        // Enable FSRS? User said "Option A (Cram Mode): ...does *not* affect FSRS progress"
+        // So enableFsrs = false.
+
+        // We shuffle the queue
+        const sessionQueue = fullWords.sort(() => Math.random() - 0.5);
+
+        this.sessionManager.start({
+            sessionQueue: sessionQueue,
+            fullWordList: fullWords,
+            savedSession: null,
+            isFsrsSession: false, // Explicitly false
+            deckName: 'mistake-notebook', // Special deck name
+            studyMode: this.currentModeRef.value
+        });
     }
 
     _populateAndShowStudyPlanModal() {
