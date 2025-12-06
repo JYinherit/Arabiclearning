@@ -1,9 +1,21 @@
 {
     "name": "钧鸢的阿拉伯语记忆",
     "short_name": "阿语记忆",
-    "start_url": "/",
+    "start_url": ".",
     "display": "standalone",
     "background_color": "#f0f2f5",
     "theme_color": "#2d3748",
-    "description": "一个用于学习阿拉伯语单词的记忆应用。"
+    "description": "一个用于学习阿拉伯语单词的记忆应用。",
+    "icons": [
+        {
+            "src": "icons/icon-192x192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "icons/icon-512x512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
 }
