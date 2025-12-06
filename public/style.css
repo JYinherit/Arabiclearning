@@ -25,7 +25,7 @@
     --word-display-bg: linear-gradient(135deg, var(--background-color-dark), var(--border-color));
     --word-display-text: var(--text-color);
     --word-display-outline-color: var(--border-color);
-
+    
     --answer-display-bg: linear-gradient(135deg, #e3f2fd, #bbdefb);
     --answer-display-text: #1976d2;
     --answer-spoiler-bg: linear-gradient(135deg, #2d3748, #4a5568);
@@ -39,7 +39,7 @@
 
     --progress-bg: var(--border-color);
     --progress-bar-bg: linear-gradient(90deg, var(--primary-color), var(--primary-color-dark));
-
+    
     --button-bg-primary: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
     --button-bg-feature: linear-gradient(135deg, var(--secondary-color), var(--secondary-color-dark));
     --button-bg-settings: linear-gradient(135deg, #4facfe, #00f2fe);
@@ -76,7 +76,7 @@
     --word-display-bg: linear-gradient(135deg, var(--background-color-dark), var(--border-color));
     --word-display-text: var(--text-color);
     --word-display-outline-color: var(--border-color);
-
+    
     --answer-display-bg: linear-gradient(135deg, #e3f2fd, #bbdefb);
     --answer-display-text: #1976d2;
     --answer-spoiler-bg: linear-gradient(135deg, #2d3748, #4a5568);
@@ -90,7 +90,7 @@
 
     --progress-bg: var(--border-color);
     --progress-bar-bg: linear-gradient(90deg, var(--primary-color), var(--primary-color-dark));
-
+    
     --button-bg-primary: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
     --button-bg-feature: linear-gradient(135deg, var(--secondary-color), var(--secondary-color-dark));
     --button-bg-settings: linear-gradient(135deg, #4facfe, #00f2fe);
@@ -115,7 +115,7 @@ body {
     width: 100%;
     max-width: 600px;
     margin: 0 auto;
-    padding-bottom: 80px;
+    padding-bottom: 80px; 
     min-height: 100vh;
     box-sizing: border-box;
     position: relative;
@@ -194,7 +194,7 @@ body {
     transform: translateX(-50%);
     width: 100%;
     max-width: 600px;
-    background: #ffffff;
+    background: #ffffff; 
     display: flex;
     justify-content: space-around;
     padding: 0.5rem 0;
@@ -236,24 +236,24 @@ body {
     .page-content {
         padding: 0.75rem;
     }
-
+    
     .feature-section,
     .settings-section {
         padding: 1rem 0.75rem;
     }
-
+    
     .nav-btn span {
         font-size: 0.65rem;
     }
-
+    
     .nav-btn i {
         font-size: 1rem;
     }
-
+    
     #card-container {
         padding: 1rem;
     }
-
+    
     .btn {
         padding: 0.75rem 0.5rem;
         font-size: 0.9rem;
@@ -373,7 +373,7 @@ body {
 .deck-btn {
     background: var(--button-bg-deck);
     width: 100%;
-    margin: 0;
+    margin: 0; 
     padding: 1rem;
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -483,24 +483,6 @@ body {
     font-size: 1.5rem;
     cursor: pointer;
     color: #667eea;
-}
-
-.ai-assist-btn {
-    position: absolute;
-    top: 10px;
-    right: 50px;
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: #ffb74d; /* Orange/Gold for magic feel */
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-
-.ai-assist-btn:hover {
-    opacity: 1;
-    transform: scale(1.1);
 }
 
 #word-display-wrapper[dir="rtl"] .tts-play-btn {
@@ -634,14 +616,14 @@ body {
 }
 
 /* 特定按钮颜色 */
-#forgot-btn {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+#forgot-btn { 
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); 
 }
-#hard-btn {
-    background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+#hard-btn { 
+    background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%); 
 }
-#easy-btn {
-    background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
+#easy-btn { 
+    background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%); 
 }
 
 #forgot-btn:hover { background: linear-gradient(135deg, #ff5252 0%, #e53935 100%); }
@@ -673,27 +655,27 @@ body {
     #card-container {
         padding: 1rem 0.5rem;
     }
-
+    
     .flashcard {
         padding: 1.5rem;
         min-height: 180px;
     }
-
+    
     #word-display {
         font-size: 1.8rem;
         min-height: 70px;
     }
-
+    
     #answer-display, #explanation-display {
         font-size: 1.5rem;
         min-height: 80px;
         padding: 1rem;
     }
-
+    
     [dir="rtl"] {
         font-size: 1.7rem !important;
     }
-
+    
     #controls .btn {
         min-width: 80px;
         padding: 1rem 0.3rem;
@@ -759,7 +741,7 @@ body {
 /* 统一 Section 容器样式 (卡片化) */
 .settings-section,
 .feature-section {
-    background-color: #ffffff;
+    background-color: #ffffff; 
     padding: 1.5rem;
     margin-bottom: 1.5rem;
     border-radius: 12px;
@@ -869,11 +851,11 @@ body {
 }
 
 .settings-buttons .settings-btn {
-    width: auto;
-    margin: 0;
+    width: auto; 
+    margin: 0; 
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: flex-start; 
     gap: 0.5rem;
     font-size: 0.95rem;
     padding: 0.8rem 1rem;
@@ -1017,7 +999,7 @@ body {
 .recall-overlay {
     position: absolute;
     top: 0;
-    left: -10%;
+    left: -10%; 
     width: 120%;
     height: 140%;
     background-color: rgba(0, 0, 0, 0.7);
@@ -1128,7 +1110,7 @@ body.theme-night {
     --word-display-bg: linear-gradient(135deg, var(--background-color-dark), #4a4a4a);
     --word-display-text: var(--text-color);
     --word-display-outline-color: #666;
-
+    
     --answer-display-bg: linear-gradient(135deg, #4c5a7a, #5c6a8a);
     --answer-display-text: var(--text-color);
     --answer-spoiler-bg: linear-gradient(135deg, #4a4a4a, #5a5a5a);
@@ -1142,7 +1124,7 @@ body.theme-night {
 
     --progress-bg: var(--border-color);
     --progress-bar-bg: linear-gradient(90deg, var(--primary-color), var(--primary-color-dark));
-
+    
     --button-bg-primary: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
     --button-bg-feature: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); /* Keep original for now */
     --button-bg-settings: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); /* Keep original for now */
@@ -1305,7 +1287,7 @@ body.theme-night {
     height: 34px;
 }
 
-.switch input {
+.switch input { 
     opacity: 0;
     width: 0;
     height: 0;
@@ -1777,7 +1759,7 @@ body.theme-golden-sun {
     --word-display-bg: linear-gradient(135deg, #fff9c4, #ffecb3);
     --word-display-text: var(--text-color);
     --word-display-outline-color: #ffab00;
-
+    
     --answer-display-bg: linear-gradient(135deg, #fff9c4, #ffecb3);
     --answer-display-text: var(--text-color);
     --answer-spoiler-bg: linear-gradient(135deg, #a1887f, #795548);
@@ -1791,7 +1773,7 @@ body.theme-golden-sun {
 
     --progress-bg: var(--border-color);
     --progress-bar-bg: linear-gradient(90deg, var(--primary-color), var(--primary-color-dark));
-
+    
     --button-bg-primary: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
     --button-bg-feature: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); /* Keep original for now */
     --button-bg-settings: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); /* Keep original for now */
@@ -1838,7 +1820,7 @@ body.theme-sakura-pink {
     --word-display-bg: linear-gradient(135deg, #fce4ec, #f8bbd0);
     --word-display-text: var(--text-color);
     --word-display-outline-color: #f06292;
-
+    
     --answer-display-bg: linear-gradient(135deg, #fce4ec, #f8bbd0);
     --answer-display-text: var(--text-color);
     --answer-spoiler-bg: linear-gradient(135deg, #886578, #5b3f4f);
@@ -1852,7 +1834,7 @@ body.theme-sakura-pink {
 
     --progress-bg: var(--border-color);
     --progress-bar-bg: linear-gradient(90deg, var(--primary-color), var(--primary-color-dark));
-
+    
     --button-bg-primary: linear-gradient(135deg, var(--secondary-color), var(--secondary-color-dark));
     --button-bg-feature: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); /* Keep original for now */
     --button-bg-settings: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); /* Keep original for now */
@@ -1899,7 +1881,7 @@ body.theme-moss-green {
     --word-display-bg: linear-gradient(135deg, #dcedc8, #c5e1a5);
     --word-display-text: var(--text-color);
     --word-display-outline-color: #aed581;
-
+    
     --answer-display-bg: linear-gradient(135deg, #dcedc8, #c5e1a5);
     --answer-display-text: var(--text-color);
     --answer-spoiler-bg: linear-gradient(135deg, #558b2f, #33691e);
@@ -1913,7 +1895,7 @@ body.theme-moss-green {
 
     --progress-bg: var(--border-color);
     --progress-bar-bg: linear-gradient(90deg, var(--primary-color), var(--primary-color-dark));
-
+    
     --button-bg-primary: linear-gradient(135deg, var(--secondary-color), var(--secondary-color-dark));
     --button-bg-feature: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); /* Keep original for now */
     --button-bg-settings: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); /* Keep original for now */
@@ -1960,7 +1942,7 @@ body.theme-violet {
     --word-display-bg: linear-gradient(135deg, #e1bee7, #d1c4e9);
     --word-display-text: var(--text-color);
     --word-display-outline-color: #ce93d8;
-
+    
     --answer-display-bg: linear-gradient(135deg, #e1bee7, #d1c4e9);
     --answer-display-text: var(--text-color);
     --answer-spoiler-bg: linear-gradient(135deg, #6a1b9a, #4a148c);
@@ -1974,7 +1956,7 @@ body.theme-violet {
 
     --progress-bg: var(--border-color);
     --progress-bar-bg: linear-gradient(90deg, var(--primary-color), var(--primary-color-dark));
-
+    
     --button-bg-primary: linear-gradient(135deg, var(--secondary-color), var(--secondary-color-dark));
     --button-bg-feature: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); /* Keep original for now */
     --button-bg-settings: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); /* Keep original for now */
@@ -2021,7 +2003,7 @@ body.theme-crimson-red {
     --word-display-bg: linear-gradient(135deg, #ffcdd2, #ef9a9a);
     --word-display-text: var(--text-color);
     --word-display-outline-color: #ef9a9a;
-
+    
     --answer-display-bg: linear-gradient(135deg, #ffcdd2, #ef9a9a);
     --answer-display-text: var(--text-color);
     --answer-spoiler-bg: linear-gradient(135deg, #c62828, #b71c1c);
@@ -2035,11 +2017,11 @@ body.theme-crimson-red {
 
     --progress-bg: var(--border-color);
     --progress-bar-bg: linear-gradient(90deg, var(--primary-color), var(--primary-color-dark));
-
+    
     --button-bg-primary: linear-gradient(135deg, var(--secondary-color), var(--secondary-color-dark));
-    --button-bg-feature: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --button-bg-settings: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --button-bg-deck: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
+    --button-bg-feature: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+    --button-bg-settings: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+    --button-bg-deck: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%); 
     --button-bg-danger: linear-gradient(135deg, #0595f5 0%, #3189fb 100%);
     --button-text-light: var(--background-color);
     --button-text-dark: #bff803;
@@ -2186,120 +2168,4 @@ body.theme-crimson-red {
 .study-plan-deck-list {
     margin-top: 10px;
     padding-left: 20px;
-}
-
-/* Mistake Notebook Styles */
-.mistake-notebook-container {
-    background-color: #fff0f0; /* Light red background */
-}
-
-.theme-night .mistake-notebook-container {
-    background-color: #3e2723; /* Darker red/brown for night mode */
-    border-color: #e57373 !important;
-}
-
-.study-mistake-btn {
-    background: linear-gradient(135deg, #ef5350, #c62828);
-    color: white;
-}
-
-.manage-deck-btn {
-    background: #e0e0e0;
-    color: #333;
-    width: 40px; /* Fixed width for icon button */
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.theme-night .manage-deck-btn {
-    background: #555;
-    color: #fff;
-}
-
-/* Large Modal for Word Browser */
-.large-modal {
-    width: 800px; /* Wider than standard modal */
-    max-width: 95%;
-    height: 80vh; /* Taller */
-    display: flex;
-    flex-direction: column;
-}
-
-.scrollable-list {
-    flex-grow: 1;
-    overflow-y: auto;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 10px;
-    background: var(--background-color);
-}
-
-/* Word Item in Browser */
-.word-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--background-color-light);
-}
-
-.word-item:last-child {
-    border-bottom: none;
-}
-
-.word-info {
-    text-align: left;
-    flex-grow: 1;
-}
-
-.word-arabic {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: var(--primary-color);
-    margin-right: 10px;
-}
-
-.word-chinese {
-    color: var(--text-color-secondary);
-    font-size: 0.95rem;
-}
-
-.word-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.add-mistake-btn {
-    background: transparent;
-    border: 1px solid #ccc;
-    color: #ccc;
-    cursor: pointer;
-    padding: 5px 10px;
-    border-radius: 20px;
-    transition: all 0.2s;
-}
-
-.add-mistake-btn:hover {
-    border-color: #888;
-    color: #888;
-}
-
-.add-mistake-btn.added {
-    background: #ffebee;
-    border-color: #e57373;
-    color: #e57373;
-}
-
-.add-mistake-btn.added:hover {
-    background: #ffcdd2;
-}
-
-.theme-night .add-mistake-btn.added {
-    background: #3e2723;
-    border-color: #ef5350;
-    color: #ef5350;
 }

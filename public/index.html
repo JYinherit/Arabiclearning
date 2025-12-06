@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="style.css">
     <!-- 引入 Font Awesome 免费版，用于设置图标 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
 
@@ -23,18 +23,16 @@
             <div class="page-content">
                 <div id="card-container">
                     <!-- 进度条 -->
-                                    <div id="progress-container">
-                                        <!-- Progress bar will be rendered here by ProgressBar.js -->
-                                    </div>                    
+                    <div id="progress-container">
+                        <div id="progress-bar">0%</div>
+                    </div>
+                    
                     <!-- 闪卡内容将由JavaScript动态组织 -->
                     <div class="flashcard">
                         <div id="word-display-wrapper">
                             <h2 id="word-display"></h2>
                             <button id="tts-play-btn" class="tts-play-btn" title="播放发音">
                                 <i class="fas fa-volume-up"></i>
-                            </button>
-                            <button id="ai-assist-btn" class="ai-assist-btn" title="AI 助手拓展">
-                                <i class="fas fa-magic"></i>
                             </button>
                         </div>
                         <div id="definition-toggle-container"></div>
@@ -254,26 +252,6 @@
                 </div>
 
                 <div class="settings-section">
-                    <h3>AI 助手设置</h3>
-                    <div class="setting-item">
-                        <label for="ai-api-url">API 地址 (Base URL)</label>
-                        <input type="text" id="ai-api-url" placeholder="https://api.openai.com/v1">
-                    </div>
-                    <div class="setting-item">
-                        <label for="ai-api-key">API Key</label>
-                        <input type="password" id="ai-api-key" placeholder="sk-...">
-                    </div>
-                    <div class="setting-item">
-                        <label for="ai-model">模型名称</label>
-                        <input type="text" id="ai-model" placeholder="gpt-3.5-turbo" value="gpt-3.5-turbo">
-                    </div>
-                    <div class="setting-item">
-                        <label for="ai-prompt-template">提示词模板 ({word} 将被替换)</label>
-                        <textarea id="ai-prompt-template" rows="10" style="width: 100%; margin-top: 5px; font-family: monospace;"></textarea>
-                    </div>
-                </div>
-
-                <div class="settings-section">
                     <h3>数据管理</h3>
                     <div class="settings-buttons">
                         <button id="view-stats-btn" class="btn settings-btn">
@@ -306,18 +284,6 @@
         </div>
     </div>
 
-    <!-- Error Reporting Modal -->
-    <div id="error-modal" class="modal" style="z-index: 9999;">
-        <div class="modal-content">
-            <h2>应用启动时发生严重错误</h2>
-            <p>请复制以下错误信息并发送给开发者。</p>
-            <pre id="error-modal-text" class="error-text-box"></pre>
-            <div class="modal-actions">
-                <button id="copy-error-btn" class="btn">复制错误信息</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 底部导航栏 -->
     <nav class="bottom-nav">
         <button class="nav-btn" data-page="study-page">
@@ -345,19 +311,6 @@
             <h2 id="stats-modal-title">学习统计</h2>
             <div id="stats-modal-body"></div>
             <button id="stats-modal-close-btn" class="btn">关闭</button>
-        </div>
-    </div>
-
-    <!-- AI 助手结果模态框 -->
-    <div id="ai-result-modal" class="modal">
-        <div class="modal-content large-modal">
-            <span class="close-button">&times;</span>
-            <h2><i class="fas fa-magic"></i> AI 深度解析</h2>
-            <div id="ai-result-content" class="scrollable-content" style="white-space: pre-wrap; font-family: 'Noto Sans SC', sans-serif; line-height: 1.6; background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0; min-height: 200px; color: #333;"></div>
-            <div class="modal-actions">
-                <button id="copy-ai-result-btn" class="btn">复制内容</button>
-                <button id="close-ai-result-btn" class="btn">关闭</button>
-            </div>
         </div>
     </div>
 
@@ -465,25 +418,11 @@
         </div>
     </div>
 
-    <!-- Deck Management / Word Browser Modal -->
-    <div id="deck-manage-modal" class="modal">
-        <div class="modal-content large-modal">
-            <span class="close-button">&times;</span>
-            <h2 id="deck-manage-title">管理词库</h2>
-            <div id="deck-manage-search-bar" style="margin-bottom: 10px;">
-                <input type="text" id="deck-manage-search-input" placeholder="搜索单词..." style="width: 100%; padding: 8px; box-sizing: border-box;">
-            </div>
-            <div id="deck-word-list" class="scrollable-list">
-                <!-- Word items will be rendered here -->
-            </div>
-        </div>
-    </div>
-
-    <script type="module" src="src/main.js"></script>
+    <script type="module" src="../src/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(registration => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
                     console.log('ServiceWorker registration successful with scope: ', registration.scope);
                 }, err => {
                     console.log('ServiceWorker registration failed: ', err);

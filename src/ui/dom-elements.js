@@ -8,6 +8,9 @@ export const studyPage = document.getElementById('study-page');
 export const decksPage = document.getElementById('decks-page');
 export const settingsPage = document.getElementById('settings-page');
 
+// --- 导航 ---
+export const navButtons = document.querySelectorAll('.nav-btn');
+
 // --- 主要屏幕 ---
 export const startScreen = document.getElementById('start-screen');
 export const cardContainer = document.getElementById('card-container');
@@ -84,4 +87,3 @@ export const ttsPitchValue = document.getElementById('tts-pitch-value');
 export const ttsVolumeSetting = document.getElementById('tts-volume-setting');
 export const ttsVolumeValue = document.getElementById('tts-volume-value');
 export const ttsExplanationPlayBtn = document.getElementById('tts-explanation-play-btn');
-

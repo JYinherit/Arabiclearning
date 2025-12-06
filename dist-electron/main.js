@@ -1,9 +1,7 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
-
-// This environment variable is set by `vite-plugin-electron`.
-const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
-
+"use strict";
+const { app, BrowserWindow } = require("electron");
+const path = require("path");
+const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 function createWindow() {
   const win = new BrowserWindow({
     width: 1080,
@@ -11,34 +9,25 @@ function createWindow() {
     webPreferences: {
       // Preload script is optional, but good practice for secure IPC.
       // preload: path.join(__dirname, 'preload.js'),
-    },
+    }
   });
-
-  // Open dev tools in development
   if (VITE_DEV_SERVER_URL) {
     win.webContents.openDevTools();
   }
-  
   win.setMenu(null);
-
   if (VITE_DEV_SERVER_URL) {
-    // Load from the Vite dev server URL.
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    // Load the production build's index.html file.
-    win.loadFile(path.join(__dirname, 'dist/index.html'));
+    win.loadFile(path.join(__dirname, "dist/index.html"));
   }
 }
-
 app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
     app.quit();
   }
 });
-
-app.on('activate', () => {
+app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }

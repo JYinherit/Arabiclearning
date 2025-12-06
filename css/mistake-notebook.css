@@ -1,0 +1,116 @@
+
+/* Mistake Notebook Styles */
+.mistake-notebook-container {
+    background-color: #fff0f0; /* Light red background */
+}
+
+.theme-night .mistake-notebook-container {
+    background-color: #3e2723; /* Darker red/brown for night mode */
+    border-color: #e57373 !important;
+}
+
+.study-mistake-btn {
+    background: linear-gradient(135deg, #ef5350, #c62828);
+    color: white;
+}
+
+.manage-deck-btn {
+    background: #e0e0e0;
+    color: #333;
+    width: 40px; /* Fixed width for icon button */
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-night .manage-deck-btn {
+    background: #555;
+    color: #fff;
+}
+
+/* Large Modal for Word Browser */
+.large-modal {
+    width: 800px; /* Wider than standard modal */
+    max-width: 95%;
+    height: 80vh; /* Taller */
+    display: flex;
+    flex-direction: column;
+}
+
+.scrollable-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--background-color);
+}
+
+/* Word Item in Browser */
+.word-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--background-color-light);
+}
+
+.word-item:last-child {
+    border-bottom: none;
+}
+
+.word-info {
+    text-align: left;
+    flex-grow: 1;
+}
+
+.word-arabic {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-right: 10px;
+}
+
+.word-chinese {
+    color: var(--text-color-secondary);
+    font-size: 0.95rem;
+}
+
+.word-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.add-mistake-btn {
+    background: transparent;
+    border: 1px solid #ccc;
+    color: #ccc;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 20px;
+    transition: all 0.2s;
+}
+
+.add-mistake-btn:hover {
+    border-color: #888;
+    color: #888;
+}
+
+.add-mistake-btn.added {
+    background: #ffebee;
+    border-color: #e57373;
+    color: #e57373;
+}
+
+.add-mistake-btn.added:hover {
+    background: #ffcdd2;
+}
+
+.theme-night .add-mistake-btn.added {
+    background: #3e2723;
+    border-color: #ef5350;
+    color: #ef5350;
+}
